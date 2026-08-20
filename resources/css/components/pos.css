@@ -1,0 +1,41 @@
+.panel-header .subtle {
+    color: var(--muted);
+    font-size: 0.8rem;
+}
+
+.product-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 24px rgba(37, 99, 235, 0.08);
+    transition: 0.2s ease;
+}
+
+.cart-item .name {
+    font-weight: 700;
+}
+
+.cart-item .meta {
+    color: var(--muted);
+    font-size: 0.75rem;
+}
+
+.cart-item .price {
+    font-weight: 700;
+}
+
+.empty-state strong {
+    display: block;
+    margin-bottom: 0.25rem;
+    color: var(--text);
+}
+
+.soft-text {
+    color: var(--muted);
+}
+
+.dot {
+    width: 0.55rem;
+    height: 0.55rem;
+    border-radius: 50%;
+    display: inline-block;
+    background: var(--success);
+}
