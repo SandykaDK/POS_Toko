@@ -16,7 +16,7 @@ class CustomerController extends Controller
                     ->orWhere('email', 'like', "%{$search}%")
                     ->orWhere('phone', 'like', "%{$search}%");
             })
-            ->when(request('status'), function ($query, $status) {
+            ->when(request()->filled('status'), function ($query, $status) {
                 return $query->where('status', $status);
             })
             ->orderByDesc('total_purchases')
@@ -34,6 +34,12 @@ class CustomerController extends Controller
         ]);
     }
 
+    public function trashed(): JsonResponse
+    {
+        $customers = Customer::onlyTrashed()->latest('deleted_at')->paginate(request('per_page', 15));
+        return response()->json(['success' => true, 'data' => $customers->items(), 'pagination' => ['total' => $customers->total(), 'per_page' => $customers->perPage(), 'current_page' => $customers->currentPage(), 'last_page' => $customers->lastPage()]]);
+    }
+
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
@@ -41,9 +47,6 @@ class CustomerController extends Controller
             'email' => 'nullable|email|max:100|unique:customers',
             'phone' => 'nullable|string|max:20',
             'address' => 'nullable|string',
-            'city' => 'nullable|string|max:50',
-            'province' => 'nullable|string|max:50',
-            'postal_code' => 'nullable|string|max:20',
             'status' => 'in:active,inactive,vip',
         ]);
 
@@ -54,7 +57,7 @@ class CustomerController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Customer created successfully',
+            'message' => 'Pelanggan berhasil ditambahkan',
             'data' => $customer
         ], 201);
     }
@@ -74,9 +77,6 @@ class CustomerController extends Controller
             'email' => "nullable|email|max:100|unique:customers,email,{$customer->id}",
             'phone' => 'nullable|string|max:20',
             'address' => 'nullable|string',
-            'city' => 'nullable|string|max:50',
-            'province' => 'nullable|string|max:50',
-            'postal_code' => 'nullable|string|max:20',
             'status' => 'in:active,inactive,vip',
         ]);
 
@@ -84,7 +84,7 @@ class CustomerController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Customer updated successfully',
+            'message' => 'Pelanggan berhasil diperbarui',
             'data' => $customer
         ]);
     }
@@ -95,7 +95,24 @@ class CustomerController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Customer deleted successfully'
+            'message' => 'Pelanggan berhasil dihapus'
         ]);
+    }
+
+    public function restore(int $customer): JsonResponse
+    {
+        $deletedCustomer = Customer::onlyTrashed()->findOrFail($customer);
+        $deletedCustomer->restore();
+        return response()->json(['success' => true, 'message' => 'Pelanggan berhasil dipulihkan', 'data' => $deletedCustomer->fresh()]);
+    }
+
+    public function forceDestroy(int $customer): JsonResponse
+    {
+        $deletedCustomer = Customer::onlyTrashed()->findOrFail($customer);
+        if ($deletedCustomer->transactions()->exists()) {
+            return response()->json(['success' => false, 'message' => 'Pelanggan tidak dapat dihapus permanen karena masih memiliki transaksi'], 422);
+        }
+        $deletedCustomer->forceDelete();
+        return response()->json(['success' => true, 'message' => 'Pelanggan berhasil dihapus permanen']);
     }
 }

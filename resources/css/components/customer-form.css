@@ -1,0 +1,47 @@
+.customers-form-modal {
+    width: min(92%, 720px);
+    max-width: 720px;
+}
+
+.customers-form {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px 14px;
+}
+
+.customers-form .customer-field-full {
+    grid-column: 1 / -1;
+}
+
+.customers-form .customer-field-half {
+    grid-column: span 2;
+}
+
+.customers-form .customer-field-quarter {
+    grid-column: span 1;
+}
+
+.customers-form .form-actions {
+    grid-column: 1 / -1;
+    margin-top: 4px;
+}
+
+@media (max-width: 600px) {
+    .customers-form-modal {
+        width: 94%;
+    }
+
+    .customers-form {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .customers-form .customer-field-quarter {
+        grid-column: span 1;
+    }
+}
+
+@media (max-width: 420px) {
+    .customers-form {
+        display: flex;
+    }
+}

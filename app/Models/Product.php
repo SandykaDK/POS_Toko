@@ -13,7 +13,7 @@ class Product extends Model
 
     protected $fillable = [
         'category_id',
-        'sku',
+        'product_code',
         'name',
         'description',
         'cost_price',
@@ -41,8 +41,4 @@ class Product extends Model
         return $this->hasMany(TransactionItem::class);
     }
 
-    public function inventoryLogs(): HasMany
-    {
-        return $this->hasMany(Inventory::class);
-    }
 }

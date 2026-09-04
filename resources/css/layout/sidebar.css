@@ -42,6 +42,8 @@ body {
 }
 
 .sidebar {
+    display: flex;
+    flex-direction: column;
     width: 250px;
     background: #0f172a;
     color: #fff;
@@ -80,6 +82,11 @@ body {
     font-weight: 800;
 }
 
+.brand-mark svg {
+    width: 1.35rem;
+    height: 1.35rem;
+}
+
 .nav-group {
     margin-top: 1.5rem;
 }
@@ -100,11 +107,31 @@ body {
     text-decoration: none;
 }
 
+.nav-item svg {
+    width: 24px;
+    height: 24px;
+    flex: 0 0 24px;
+}
+
 .nav-item.active {
     background: rgba(96, 165, 250, 0.18);
     color: #fff;
     box-shadow: inset 0 0 0 1px rgba(96, 165, 250, 0.18);
 }
+
+.sidebar-footer {
+    display: grid;
+    gap: 0.7rem;
+    margin-top: auto;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.user-summary { display: flex; align-items: center; gap: 0.65rem; padding: 0.4rem; color: #e2e8f0; font-size: 0.85rem; font-weight: 700; }
+.user-avatar { display: grid; place-items: center; width: 2rem; height: 2rem; border-radius: 50%; color: #0f172a; background: #fbbf24; }
+.logout-button { display: flex; align-items: center; gap: 0.55rem; width: 100%; padding: 0.65rem 0.75rem; border: 1px solid rgba(148, 163, 184, 0.25); border-radius: 0.65rem; color: #cbd5e1; background: transparent; text-align: left; cursor: pointer; }
+.logout-button svg { width: 1.15rem; height: 1.15rem; }
+.logout-button:hover { color: #fff; background: rgba(148, 163, 184, 0.12); }
 
 .main-panel {
     flex: 1;
@@ -272,6 +299,13 @@ body {
     margin-bottom: 0.8rem;
 }
 
+.product-card .thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: inherit;
+}
+
 .product-card h3 {
     margin: 0 0 0.3rem;
     font-size: 1rem;
@@ -312,7 +346,7 @@ body {
     display: flex;
     flex-direction: column;
     gap: 0.7rem;
-    margin: 1rem 0 1.1rem;
+    margin: 0 0 1.1rem;
     max-height: 320px;
     overflow: auto;
 }
@@ -387,6 +421,7 @@ body {
 
 .checkout-btn {
     width: 100%;
+    margin-top: 0.35rem;
     border: 0;
     border-radius: 0.9rem;
     background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);

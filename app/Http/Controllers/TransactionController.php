@@ -14,7 +14,7 @@ class TransactionController extends Controller
     public function index(): JsonResponse
     {
         $transactions = Transaction::query()
-            ->with('customer', 'user', 'transactionItems')
+            ->with('customer', 'user', 'transactionItems.product')
             ->when(request('status'), function ($query, $status) {
                 return $query->where('status', $status);
             })
@@ -23,6 +23,12 @@ class TransactionController extends Controller
             })
             ->when(request('invoice_number'), function ($query, $invoice) {
                 return $query->where('invoice_number', 'like', "%{$invoice}%");
+            })
+            ->when(request('start_date'), function ($query, $startDate) {
+                return $query->whereDate('transaction_date', '>=', $startDate);
+            })
+            ->when(request('end_date'), function ($query, $endDate) {
+                return $query->whereDate('transaction_date', '<=', $endDate);
             })
             ->orderByDesc('transaction_date')
             ->paginate(request('per_page', 15));
@@ -48,10 +54,9 @@ class TransactionController extends Controller
                 'invoice_number' => 'required|string|unique:transactions',
                 'user_id' => 'required|exists:users,id',
                 'customer_id' => 'nullable|exists:customers,id',
-                'transaction_date' => 'required|datetime',
+                'transaction_date' => 'required|date',
                 'subtotal' => 'required|numeric|min:0',
                 'discount_amount' => 'required|numeric|min:0',
-                'tax_amount' => 'required|numeric|min:0',
                 'total_amount' => 'required|numeric|min:0',
                 'payment_method' => 'required|string|max:50',
                 'status' => 'in:pending,completed,cancelled',
@@ -70,7 +75,6 @@ class TransactionController extends Controller
                 'transaction_date' => $validated['transaction_date'],
                 'subtotal' => $validated['subtotal'],
                 'discount_amount' => $validated['discount_amount'],
-                'tax_amount' => $validated['tax_amount'],
                 'total_amount' => $validated['total_amount'],
                 'payment_method' => $validated['payment_method'],
                 'status' => $validated['status'] ?? 'completed',
@@ -100,7 +104,7 @@ class TransactionController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Transaction created successfully',
+                'message' => 'Transaksi berhasil dibuat',
                 'data' => $transaction->load('customer', 'user', 'transactionItems')
             ], 201);
         } catch (\Exception $e) {
@@ -108,7 +112,7 @@ class TransactionController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'Transaction creation failed: ' . $e->getMessage()
+                'message' => 'Transaksi gagal dibuat: ' . $e->getMessage()
             ], 422);
         }
     }
@@ -132,7 +136,7 @@ class TransactionController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Transaction updated successfully',
+            'message' => 'Transaksi berhasil diperbarui',
             'data' => $transaction->load('customer', 'user', 'transactionItems')
         ]);
     }
@@ -142,7 +146,7 @@ class TransactionController extends Controller
         if ($transaction->payments()->where('status', 'success')->exists()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Cannot delete transaction with successful payments'
+                'message' => 'Transaksi tidak dapat dihapus karena sudah memiliki pembayaran berhasil'
             ], 422);
         }
 
@@ -150,7 +154,7 @@ class TransactionController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Transaction deleted successfully'
+            'message' => 'Transaksi berhasil dihapus'
         ]);
     }
 

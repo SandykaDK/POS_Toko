@@ -45,14 +45,14 @@ class PaymentController extends Controller
             'reference_number' => 'nullable|string|max:100',
             'status' => 'in:pending,success,failed',
             'notes' => 'nullable|string',
-            'payment_date' => 'required|datetime',
+            'payment_date' => 'required|date',
         ]);
 
         $payment = Payment::create($validated);
 
         return response()->json([
             'success' => true,
-            'message' => 'Payment created successfully',
+            'message' => 'Pembayaran berhasil ditambahkan',
             'data' => $payment->load('transaction')
         ], 201);
     }
@@ -73,14 +73,14 @@ class PaymentController extends Controller
             'reference_number' => 'nullable|string|max:100',
             'status' => 'in:pending,success,failed',
             'notes' => 'nullable|string',
-            'payment_date' => 'required|datetime',
+            'payment_date' => 'required|date',
         ]);
 
         $payment->update($validated);
 
         return response()->json([
             'success' => true,
-            'message' => 'Payment updated successfully',
+            'message' => 'Pembayaran berhasil diperbarui',
             'data' => $payment->load('transaction')
         ]);
     }
@@ -91,7 +91,7 @@ class PaymentController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Payment deleted successfully'
+            'message' => 'Pembayaran berhasil dihapus'
         ]);
     }
 }

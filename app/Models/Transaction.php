@@ -18,7 +18,6 @@ class Transaction extends Model
         'transaction_date',
         'subtotal',
         'discount_amount',
-        'tax_amount',
         'total_amount',
         'payment_method',
         'status',
@@ -29,7 +28,6 @@ class Transaction extends Model
         'transaction_date' => 'datetime',
         'subtotal' => 'decimal:2',
         'discount_amount' => 'decimal:2',
-        'tax_amount' => 'decimal:2',
         'total_amount' => 'decimal:2',
     ];
 

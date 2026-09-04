@@ -1,12 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { money } from '../helpers.js';
-import { fetchList, createItem, updateItem, deleteItem } from '../api.js';
+import { ArrowPathIcon, ArrowUturnLeftIcon, ExclamationTriangleIcon, PencilSquareIcon, PlusIcon, TrashIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { fetchList, fetchTrashed, createItem, updateItem, deleteItem, restoreItem, forceDeleteItem } from '../api.js';
+import { AlertPopup } from '../components/AlertPopup.jsx';
 
 export function Discounts() {
     const [discounts, setDiscounts] = useState([]);
+    const [view, setView] = useState('active');
+    const [statusFilter, setStatusFilter] = useState('');
     const [loading, setLoading] = useState(true);
     const [showForm, setShowForm] = useState(false);
     const [editingId, setEditingId] = useState(null);
+    const [confirmDialog, setConfirmDialog] = useState(null);
     const [message, setMessage] = useState({ type: '', text: '' });
     const [formData, setFormData] = useState({
         code: '',
@@ -24,12 +29,19 @@ export function Discounts() {
 
     useEffect(() => {
         loadData();
-    }, []);
+    }, [view, statusFilter]);
+
+    useEffect(() => {
+        if (!confirmDialog) return undefined;
+        const handleKeyDown = (event) => { if (event.key === 'Escape') setConfirmDialog(null); };
+        document.addEventListener('keydown', handleKeyDown);
+        return () => document.removeEventListener('keydown', handleKeyDown);
+    }, [confirmDialog]);
 
     const loadData = async () => {
         try {
             setLoading(true);
-            const res = await fetchList('discounts', 1, 100);
+            const res = view === 'trashed' ? await fetchTrashed('discounts', 1, 100) : await fetchList('discounts', 1, 100, statusFilter ? { active: statusFilter } : {});
             setDiscounts(res.data || []);
         } catch (error) {
             setMessage({ type: 'error', text: error.message });
@@ -37,6 +49,8 @@ export function Discounts() {
             setLoading(false);
         }
     };
+
+    const resetFilters = () => setStatusFilter('');
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -76,15 +90,32 @@ export function Discounts() {
     };
 
     const handleDelete = async (id) => {
-        if (window.confirm('Yakin ingin menghapus diskon ini?')) {
-            try {
-                await deleteItem('discounts', id);
-                setMessage({ type: 'success', text: 'Diskon berhasil dihapus.' });
-                loadData();
-            } catch (error) {
-                setMessage({ type: 'error', text: error.message });
-            }
-        }
+        openConfirmation({ title: 'Hapus diskon?', message: 'Diskon akan dipindahkan ke daftar terhapus dan masih dapat dipulihkan.', confirmLabel: 'Hapus diskon', tone: 'danger', action: async () => {
+            try { await deleteItem('discounts', id); setMessage({ type: 'success', text: 'Diskon berhasil dihapus.' }); loadData(); }
+            catch (error) { setMessage({ type: 'error', text: error.message }); }
+        } });
+    };
+
+    const handleRestore = async (id) => {
+        openConfirmation({ title: 'Pulihkan diskon?', message: 'Diskon ini akan kembali muncul di daftar diskon aktif.', confirmLabel: 'Pulihkan diskon', tone: 'default', action: async () => {
+            try { await restoreItem('discounts', id); setMessage({ type: 'success', text: 'Diskon berhasil dipulihkan.' }); loadData(); }
+            catch (error) { setMessage({ type: 'error', text: error.message }); }
+        } });
+    };
+
+    const handleForceDelete = async (id) => {
+        openConfirmation({ title: 'Hapus permanen?', message: 'Data diskon akan dihapus selamanya dan tidak dapat dipulihkan.', confirmLabel: 'Hapus permanen', tone: 'danger', action: async () => {
+            try { await forceDeleteItem('discounts', id); setMessage({ type: 'success', text: 'Diskon dihapus permanen.' }); loadData(); }
+            catch (error) { setMessage({ type: 'error', text: error.message }); }
+        } });
+    };
+
+    const openConfirmation = (dialog) => setConfirmDialog(dialog);
+
+    const handleConfirm = async () => {
+        const action = confirmDialog?.action;
+        setConfirmDialog(null);
+        if (action) await action();
     };
 
     return React.createElement(
@@ -94,34 +125,6 @@ export function Discounts() {
             'header',
             { className: 'topbar' },
             React.createElement('h1', null, 'Data Diskon'),
-            React.createElement(
-                'div',
-                { className: 'topbar-actions' },
-                React.createElement(
-                    'button',
-                    {
-                        className: 'pill primary',
-                        onClick: () => {
-                            setEditingId(null);
-                            setFormData({
-                                code: '',
-                                name: '',
-                                description: '',
-                                type: 'percentage',
-                                value: '',
-                                max_discount: '',
-                                min_purchase: '',
-                                max_usage: '',
-                                start_date: '',
-                                end_date: '',
-                                is_active: true,
-                            });
-                            setShowForm(true);
-                        },
-                    },
-                    '+ Tambah Diskon',
-                ),
-            ),
         ),
         showForm
             ? React.createElement(
@@ -269,7 +272,13 @@ export function Discounts() {
             : null,
         React.createElement(
             'section',
-            { className: 'panel' },
+            { className: 'panel category-panel' },
+            React.createElement('div', { className: 'category-toolbar' },
+                React.createElement('label', { className: 'category-filter' }, React.createElement('span', null, 'Status'), React.createElement('select', { value: statusFilter, onChange: (event) => setStatusFilter(event.target.value), disabled: view === 'trashed' }, React.createElement('option', { value: '' }, 'Semua Status'), React.createElement('option', { value: '1' }, 'Aktif'), React.createElement('option', { value: '0' }, 'Nonaktif'))),
+                React.createElement('button', { className: 'filter-reset', type: 'button', onClick: resetFilters }, React.createElement(ArrowUturnLeftIcon, { 'aria-hidden': 'true' }), 'Reset'),
+                React.createElement('button', { className: 'category-add-button', type: 'button', onClick: () => setShowForm(true) }, React.createElement(PlusIcon, { 'aria-hidden': 'true' }), 'Tambah'),
+            ),
+            React.createElement('div', { className: 'category-tabs' }, React.createElement('button', { className: `pill ${view === 'active' ? 'primary' : 'secondary'}`, onClick: () => setView('active') }, 'Aktif'), React.createElement('button', { className: `pill ${view === 'trashed' ? 'primary' : 'secondary'}`, onClick: () => setView('trashed') }, 'Terhapus')),
             React.createElement(
                 'div',
                 { className: 'panel-header' },
@@ -283,7 +292,7 @@ export function Discounts() {
                       { className: 'table-container' },
                       React.createElement(
                           'table',
-                          { className: 'data-table' },
+                          { className: 'data-table category-data-table' },
                           React.createElement(
                               'thead',
                               null,
@@ -315,12 +324,11 @@ export function Discounts() {
                                           discount.type === 'percentage' ? `${discount.value}%` : money(discount.value),
                                       ),
                                       React.createElement('td', null, money(discount.min_purchase)),
-                                      React.createElement('td', null, discount.is_active ? '✓ Aktif' : '✗ Nonaktif'),
+                                      React.createElement('td', null, React.createElement('span', { className: `category-status ${view === 'trashed' ? 'deleted' : discount.is_active ? 'active' : 'inactive'}` }, view === 'trashed' ? 'Terhapus' : discount.is_active ? 'Aktif' : 'Nonaktif')),
                                       React.createElement(
                                           'td',
                                           { className: 'action-buttons' },
-                                          React.createElement('button', { className: 'btn-edit', onClick: () => handleEdit(discount) }, '✎'),
-                                          React.createElement('button', { className: 'btn-delete', onClick: () => handleDelete(discount.id) }, '🗑'),
+                                          view === 'trashed' ? React.createElement(React.Fragment, null, React.createElement('button', { className: 'btn-edit', title: 'Pulihkan diskon', 'aria-label': 'Pulihkan diskon', onClick: () => handleRestore(discount.id) }, React.createElement(ArrowPathIcon, { 'aria-hidden': 'true' })), React.createElement('button', { className: 'btn-delete', title: 'Hapus permanen', 'aria-label': 'Hapus permanen', onClick: () => handleForceDelete(discount.id) }, React.createElement(TrashIcon, { 'aria-hidden': 'true' }))) : React.createElement(React.Fragment, null, React.createElement('button', { className: 'btn-edit', title: 'Edit diskon', 'aria-label': 'Edit diskon', onClick: () => handleEdit(discount) }, React.createElement(PencilSquareIcon, { 'aria-hidden': 'true' })), React.createElement('button', { className: 'btn-delete', title: 'Hapus diskon', 'aria-label': 'Hapus diskon', onClick: () => handleDelete(discount.id) }, React.createElement(TrashIcon, { 'aria-hidden': 'true' }))),
                                       ),
                                   ),
                               ),
@@ -328,6 +336,7 @@ export function Discounts() {
                       ),
                   ),
         ),
-        message.text ? React.createElement('div', { className: `message ${message.type}` }, message.text) : null,
+        confirmDialog ? React.createElement('div', { className: 'confirm-overlay', role: 'presentation', onMouseDown: (event) => { if (event.target === event.currentTarget) setConfirmDialog(null); } }, React.createElement('div', { className: 'confirm-dialog', role: 'alertdialog', 'aria-modal': 'true', 'aria-labelledby': 'confirm-title', 'aria-describedby': 'confirm-message' }, React.createElement('div', { className: `confirm-icon ${confirmDialog.tone}` }, React.createElement(ExclamationTriangleIcon, { 'aria-hidden': 'true' })), React.createElement('div', { className: 'confirm-content' }, React.createElement('h2', { id: 'confirm-title' }, confirmDialog.title), React.createElement('p', { id: 'confirm-message' }, confirmDialog.message)), React.createElement('button', { className: 'confirm-close', type: 'button', onClick: () => setConfirmDialog(null), 'aria-label': 'Tutup dialog' }, React.createElement(XMarkIcon, { 'aria-hidden': 'true' })), React.createElement('div', { className: 'confirm-actions' }, React.createElement('button', { className: 'confirm-cancel', type: 'button', onClick: () => setConfirmDialog(null) }, 'Batal'), React.createElement('button', { className: `confirm-submit ${confirmDialog.tone}`, type: 'button', onClick: handleConfirm }, confirmDialog.confirmLabel)))) : null,
+        message.text ? React.createElement(AlertPopup, { message, onClose: () => setMessage({ type: '', text: '' }) }) : null,
     );
 }

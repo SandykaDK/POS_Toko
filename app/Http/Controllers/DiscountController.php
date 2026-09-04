@@ -15,7 +15,7 @@ class DiscountController extends Controller
                 return $query->where('name', 'like', "%{$search}%")
                     ->orWhere('code', 'like', "%{$search}%");
             })
-            ->when(request('active'), function ($query) {
+            ->when(request()->filled('active'), function ($query) {
                 return $query->where('is_active', true)
                     ->where('start_date', '<=', now())
                     ->where(function ($q) {
@@ -37,6 +37,12 @@ class DiscountController extends Controller
         ]);
     }
 
+    public function trashed(): JsonResponse
+    {
+        $discounts = Discount::onlyTrashed()->latest('deleted_at')->paginate(request('per_page', 15));
+        return response()->json(['success' => true, 'data' => $discounts->items(), 'pagination' => ['total' => $discounts->total(), 'per_page' => $discounts->perPage(), 'current_page' => $discounts->currentPage(), 'last_page' => $discounts->lastPage()]]);
+    }
+
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
@@ -48,8 +54,8 @@ class DiscountController extends Controller
             'max_discount' => 'nullable|numeric|min:0',
             'min_purchase' => 'required|numeric|min:0',
             'max_usage' => 'nullable|integer|min:1',
-            'start_date' => 'required|datetime',
-            'end_date' => 'nullable|datetime|after_or_equal:start_date',
+            'start_date' => 'required|date',
+            'end_date' => 'nullable|date|after_or_equal:start_date',
             'is_active' => 'boolean',
         ]);
 
@@ -59,7 +65,7 @@ class DiscountController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Discount created successfully',
+            'message' => 'Diskon berhasil ditambahkan',
             'data' => $discount
         ], 201);
     }
@@ -83,8 +89,8 @@ class DiscountController extends Controller
             'max_discount' => 'nullable|numeric|min:0',
             'min_purchase' => 'required|numeric|min:0',
             'max_usage' => 'nullable|integer|min:1',
-            'start_date' => 'required|datetime',
-            'end_date' => 'nullable|datetime|after_or_equal:start_date',
+            'start_date' => 'required|date',
+            'end_date' => 'nullable|date|after_or_equal:start_date',
             'is_active' => 'boolean',
         ]);
 
@@ -92,7 +98,7 @@ class DiscountController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Discount updated successfully',
+            'message' => 'Diskon berhasil diperbarui',
             'data' => $discount
         ]);
     }
@@ -103,7 +109,7 @@ class DiscountController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Discount deleted successfully'
+            'message' => 'Diskon berhasil dihapus'
         ]);
     }
 
@@ -119,42 +125,42 @@ class DiscountController extends Controller
         if (!$discount) {
             return response()->json([
                 'success' => false,
-                'message' => 'Discount code not found'
+                'message' => 'Kode diskon tidak ditemukan'
             ], 404);
         }
 
         if (!$discount->is_active) {
             return response()->json([
                 'success' => false,
-                'message' => 'Discount code is inactive'
+                'message' => 'Kode diskon sedang tidak aktif'
             ], 422);
         }
 
         if ($discount->start_date > now()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Discount code is not yet valid'
+                'message' => 'Kode diskon belum berlaku'
             ], 422);
         }
 
         if ($discount->end_date && $discount->end_date < now()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Discount code has expired'
+                'message' => 'Kode diskon sudah kedaluwarsa'
             ], 422);
         }
 
         if ($discount->max_usage && $discount->usage_count >= $discount->max_usage) {
             return response()->json([
                 'success' => false,
-                'message' => 'Discount code usage limit reached'
+                'message' => 'Batas penggunaan kode diskon sudah tercapai'
             ], 422);
         }
 
         if ($validated['purchase_amount'] < $discount->min_purchase) {
             return response()->json([
                 'success' => false,
-                'message' => "Minimum purchase amount is {$discount->min_purchase}"
+                'message' => "Minimal pembelian adalah {$discount->min_purchase}"
             ], 422);
         }
 
@@ -177,5 +183,19 @@ class DiscountController extends Controller
                 'final_amount' => $final_amount
             ]
         ]);
+    }
+
+    public function restore(int $discount): JsonResponse
+    {
+        $deletedDiscount = Discount::onlyTrashed()->findOrFail($discount);
+        $deletedDiscount->restore();
+        return response()->json(['success' => true, 'message' => 'Diskon berhasil dipulihkan', 'data' => $deletedDiscount->fresh()]);
+    }
+
+    public function forceDestroy(int $discount): JsonResponse
+    {
+        $deletedDiscount = Discount::onlyTrashed()->findOrFail($discount);
+        $deletedDiscount->forceDelete();
+        return response()->json(['success' => true, 'message' => 'Diskon berhasil dihapus permanen']);
     }
 }

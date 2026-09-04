@@ -1,17 +1,23 @@
 import React, { useEffect, useState } from 'react';
 import { money } from '../helpers.js';
-import { fetchList, createItem, updateItem, deleteItem } from '../api.js';
+import { ArrowPathIcon, ArrowUturnLeftIcon, ExclamationTriangleIcon, PencilSquareIcon, PlusIcon, TrashIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { fetchList, fetchTrashed, createItem, updateItem, deleteItem, restoreItem, forceDeleteItem } from '../api.js';
+import { AlertPopup } from '../components/AlertPopup.jsx';
 
 export function Products() {
     const [products, setProducts] = useState([]);
     const [categories, setCategories] = useState([]);
+    const [view, setView] = useState('active');
+    const [statusFilter, setStatusFilter] = useState('');
+    const [categoryFilter, setCategoryFilter] = useState('');
     const [loading, setLoading] = useState(true);
     const [showForm, setShowForm] = useState(false);
     const [editingId, setEditingId] = useState(null);
+    const [confirmDialog, setConfirmDialog] = useState(null);
     const [message, setMessage] = useState({ type: '', text: '' });
     const [formData, setFormData] = useState({
         name: '',
-        sku: '',
+        product_code: '',
         category_id: '',
         cost_price: '',
         selling_price: '',
@@ -19,17 +25,31 @@ export function Products() {
         min_stock: '',
         unit: 'pcs',
         description: '',
+        is_active: true,
+        image_file: null,
     });
 
     useEffect(() => {
         loadData();
-    }, []);
+    }, [view, statusFilter, categoryFilter]);
+
+    useEffect(() => {
+        if (!confirmDialog) return undefined;
+        const handleKeyDown = (event) => { if (event.key === 'Escape') setConfirmDialog(null); };
+        document.addEventListener('keydown', handleKeyDown);
+        return () => document.removeEventListener('keydown', handleKeyDown);
+    }, [confirmDialog]);
 
     const loadData = async () => {
         try {
             setLoading(true);
             const [productsRes, categoriesRes] = await Promise.all([
-                fetchList('products', 1, 100),
+                view === 'trashed'
+                    ? fetchTrashed('products', 1, 100)
+                    : fetchList('products', 1, 100, {
+                        ...(statusFilter ? { active: statusFilter } : {}),
+                        ...(categoryFilter ? { category_id: categoryFilter } : {}),
+                    }),
                 fetchList('categories', 1, 100),
             ]);
 
@@ -42,29 +62,57 @@ export function Products() {
         }
     };
 
+    const resetFilters = () => {
+        setStatusFilter('');
+        setCategoryFilter('');
+    };
+
+    const generateProductCode = (categoryId) => {
+        const category = categories.find((item) => String(item.id) === String(categoryId));
+        if (!category?.category_code) return '';
+
+        const nextNumber = Number(category.products_count || 0) + 1;
+        return `${category.category_code}-${String(nextNumber).padStart(3, '0')}`;
+    };
+
+    const resetProductForm = () => {
+        setEditingId(null);
+        setFormData({
+            name: '',
+            product_code: '',
+            category_id: '',
+            cost_price: '',
+            selling_price: '',
+            stock: '',
+            min_stock: '',
+            unit: 'pcs',
+            description: '',
+            is_active: true,
+            image_file: null,
+        });
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
+            const payload = new FormData();
+            Object.entries(formData).forEach(([key, value]) => {
+                if (key !== 'image_file' && key !== 'image' && value !== null && value !== undefined) {
+                    payload.append(key, key === 'is_active' ? (value ? '1' : '0') : value);
+                }
+            });
+            if (formData.image_file) payload.append('image', formData.image_file);
+
             if (editingId) {
-                await updateItem('products', editingId, formData);
+                payload.append('_method', 'PUT');
+                await updateItem('products', editingId, payload);
                 setMessage({ type: 'success', text: 'Produk berhasil diperbarui.' });
             } else {
-                await createItem('products', formData);
+                await createItem('products', payload);
                 setMessage({ type: 'success', text: 'Produk berhasil ditambahkan.' });
             }
             setShowForm(false);
-            setEditingId(null);
-            setFormData({
-                name: '',
-                sku: '',
-                category_id: '',
-                cost_price: '',
-                selling_price: '',
-                stock: '',
-                min_stock: '',
-                unit: 'pcs',
-                description: '',
-            });
+            resetProductForm();
             loadData();
         } catch (error) {
             setMessage({ type: 'error', text: error.message });
@@ -72,21 +120,38 @@ export function Products() {
     };
 
     const handleEdit = (product) => {
-        setFormData(product);
+        setFormData({ ...product, image_file: null });
         setEditingId(product.id);
         setShowForm(true);
     };
 
     const handleDelete = async (id) => {
-        if (window.confirm('Yakin ingin menghapus produk ini?')) {
-            try {
-                await deleteItem('products', id);
-                setMessage({ type: 'success', text: 'Produk berhasil dihapus.' });
-                loadData();
-            } catch (error) {
-                setMessage({ type: 'error', text: error.message });
-            }
-        }
+        openConfirmation({ title: 'Hapus produk?', message: 'Produk akan dipindahkan ke daftar terhapus dan masih dapat dipulihkan.', confirmLabel: 'Hapus produk', tone: 'danger', action: async () => {
+            try { await deleteItem('products', id); setMessage({ type: 'success', text: 'Produk berhasil dihapus.' }); loadData(); }
+            catch (error) { setMessage({ type: 'error', text: error.message }); }
+        } });
+    };
+
+    const handleRestore = async (id) => {
+        openConfirmation({ title: 'Pulihkan produk?', message: 'Produk ini akan kembali muncul di daftar produk aktif.', confirmLabel: 'Pulihkan produk', tone: 'default', action: async () => {
+            try { await restoreItem('products', id); setMessage({ type: 'success', text: 'Produk berhasil dipulihkan.' }); loadData(); }
+            catch (error) { setMessage({ type: 'error', text: error.message }); }
+        } });
+    };
+
+    const handleForceDelete = async (id) => {
+        openConfirmation({ title: 'Hapus permanen?', message: 'Data produk akan dihapus selamanya dan tidak dapat dipulihkan.', confirmLabel: 'Hapus permanen', tone: 'danger', action: async () => {
+            try { await forceDeleteItem('products', id); setMessage({ type: 'success', text: 'Produk dihapus permanen.' }); loadData(); }
+            catch (error) { setMessage({ type: 'error', text: error.message }); }
+        } });
+    };
+
+    const openConfirmation = (dialog) => setConfirmDialog(dialog);
+
+    const handleConfirm = async () => {
+        const action = confirmDialog?.action;
+        setConfirmDialog(null);
+        if (action) await action();
     };
 
     const getCategoryName = (categoryId) => {
@@ -101,32 +166,6 @@ export function Products() {
             'header',
             { className: 'topbar' },
             React.createElement('h1', null, 'Data Produk'),
-            React.createElement(
-                'div',
-                { className: 'topbar-actions' },
-                React.createElement(
-                    'button',
-                    {
-                        className: 'pill primary',
-                        onClick: () => {
-                            setEditingId(null);
-                            setFormData({
-                                name: '',
-                                sku: '',
-                                category_id: '',
-                                cost_price: '',
-                                selling_price: '',
-                                stock: '',
-                                min_stock: '',
-                                unit: 'pcs',
-                                description: '',
-                            });
-                            setShowForm(true);
-                        },
-                    },
-                    '+ Tambah Produk',
-                ),
-            ),
         ),
         showForm
             ? React.createElement(
@@ -134,19 +173,19 @@ export function Products() {
                   { className: 'form-overlay' },
                   React.createElement(
                       'div',
-                      { className: 'form-modal' },
+                      { className: 'form-modal products-form-modal' },
                       React.createElement(
                           'div',
                           { className: 'form-header' },
                           React.createElement('h2', null, editingId ? 'Edit Produk' : 'Tambah Produk'),
-                          React.createElement('button', { type: 'button', onClick: () => setShowForm(false) }, '✕'),
+                          React.createElement('button', { type: 'button', onClick: () => { resetProductForm(); setShowForm(false); } }, '✕'),
                       ),
                       React.createElement(
                           'form',
-                          { onSubmit: handleSubmit },
+                          { className: 'products-form', onSubmit: handleSubmit },
                           React.createElement(
                               'div',
-                              { className: 'form-group' },
+                              { className: 'form-group product-field-full' },
                               React.createElement('label', null, 'Nama Produk'),
                               React.createElement('input', {
                                   type: 'text',
@@ -157,24 +196,29 @@ export function Products() {
                           ),
                           React.createElement(
                               'div',
-                              { className: 'form-group' },
-                              React.createElement('label', null, 'SKU'),
+                              { className: 'form-group product-field-half' },
+                              React.createElement('label', null, 'Kode Produk'),
                               React.createElement('input', {
                                   type: 'text',
-                                  value: formData.sku,
-                                  onChange: (e) => setFormData({ ...formData, sku: e.target.value }),
+                                  value: formData.product_code,
+                                  readOnly: true,
+                                  placeholder: 'Pilih kategori terlebih dahulu',
                                   required: true,
                               }),
                           ),
                           React.createElement(
                               'div',
-                              { className: 'form-group' },
+                              { className: 'form-group product-field-half' },
                               React.createElement('label', null, 'Kategori'),
                               React.createElement(
                                   'select',
                                   {
                                       value: formData.category_id,
-                                      onChange: (e) => setFormData({ ...formData, category_id: e.target.value }),
+                                      onChange: (e) => setFormData({
+                                          ...formData,
+                                          category_id: e.target.value,
+                                          product_code: generateProductCode(e.target.value),
+                                      }),
                                       required: true,
                                   },
                                   React.createElement('option', { value: '' }, 'Pilih Kategori'),
@@ -185,7 +229,7 @@ export function Products() {
                           ),
                           React.createElement(
                               'div',
-                              { className: 'form-group' },
+                              { className: 'form-group product-field-half' },
                               React.createElement('label', null, 'Harga Beli'),
                               React.createElement('input', {
                                   type: 'number',
@@ -196,7 +240,7 @@ export function Products() {
                           ),
                           React.createElement(
                               'div',
-                              { className: 'form-group' },
+                              { className: 'form-group product-field-half' },
                               React.createElement('label', null, 'Harga Jual'),
                               React.createElement('input', {
                                   type: 'number',
@@ -207,7 +251,7 @@ export function Products() {
                           ),
                           React.createElement(
                               'div',
-                              { className: 'form-group' },
+                              { className: 'form-group product-field-third' },
                               React.createElement('label', null, 'Stok'),
                               React.createElement('input', {
                                   type: 'number',
@@ -218,7 +262,7 @@ export function Products() {
                           ),
                           React.createElement(
                               'div',
-                              { className: 'form-group' },
+                              { className: 'form-group product-field-third' },
                               React.createElement('label', null, 'Stok Minimal'),
                               React.createElement('input', {
                                   type: 'number',
@@ -229,7 +273,7 @@ export function Products() {
                           ),
                           React.createElement(
                               'div',
-                              { className: 'form-group' },
+                              { className: 'form-group product-field-third' },
                               React.createElement('label', null, 'Unit'),
                               React.createElement('select', {
                                   value: formData.unit,
@@ -238,7 +282,32 @@ export function Products() {
                           ),
                           React.createElement(
                               'div',
-                              { className: 'form-group' },
+                              { className: 'form-group checkbox product-field-third' },
+                              React.createElement('input', {
+                                  type: 'checkbox',
+                                  id: 'product_is_active',
+                                  checked: Boolean(formData.is_active),
+                                  onChange: (e) => setFormData({ ...formData, is_active: e.target.checked }),
+                              }),
+                              React.createElement('label', { htmlFor: 'product_is_active' }, 'Aktif'),
+                          ),
+                          React.createElement(
+                              'div',
+                              { className: 'form-group product-field-full' },
+                              React.createElement('label', { htmlFor: 'product_image' }, 'Gambar Produk'),
+                              React.createElement('input', {
+                                  id: 'product_image',
+                                  type: 'file',
+                                  accept: 'image/jpeg,image/png,image/webp',
+                                  onChange: (e) => setFormData({ ...formData, image_file: e.target.files[0] || null }),
+                              }),
+                              formData.image && !formData.image_file
+                                  ? React.createElement('small', { className: 'product-image-hint' }, 'Gambar saat ini akan dipertahankan jika tidak memilih file baru.')
+                                  : null,
+                          ),
+                          React.createElement(
+                              'div',
+                              { className: 'form-group product-field-full' },
                               React.createElement('label', null, 'Deskripsi'),
                               React.createElement('textarea', {
                                   value: formData.description,
@@ -248,9 +317,9 @@ export function Products() {
                           ),
                           React.createElement(
                               'div',
-                              { className: 'form-actions' },
+                              { className: 'form-actions product-form-actions' },
                               React.createElement('button', { type: 'submit', className: 'pill primary' }, editingId ? 'Simpan Perubahan' : 'Tambah Produk'),
-                              React.createElement('button', { type: 'button', className: 'pill secondary', onClick: () => setShowForm(false) }, 'Batal'),
+                              React.createElement('button', { type: 'button', className: 'pill secondary', onClick: () => { resetProductForm(); setShowForm(false); } }, 'Batal'),
                           ),
                       ),
                   ),
@@ -258,12 +327,20 @@ export function Products() {
             : null,
         React.createElement(
             'section',
-            { className: 'panel' },
+            { className: 'panel category-panel' },
             React.createElement(
                 'div',
-                { className: 'panel-header' },
-                React.createElement('h2', null, 'Daftar Produk'),
-                React.createElement('span', { className: 'subtle' }, `${products.length} item`),
+                { className: 'category-toolbar' },
+                React.createElement('label', { className: 'category-filter' }, React.createElement('span', null, 'Kategori'), React.createElement('select', { value: categoryFilter, onChange: (event) => setCategoryFilter(event.target.value) }, React.createElement('option', { value: '' }, 'Semua Kategori'), categories.map((category) => React.createElement('option', { key: category.id, value: category.id }, category.name)))),
+                React.createElement('label', { className: 'category-filter' }, React.createElement('span', null, 'Status'), React.createElement('select', { value: statusFilter, onChange: (event) => setStatusFilter(event.target.value), disabled: view === 'trashed' }, React.createElement('option', { value: '' }, 'Semua Status'), React.createElement('option', { value: '1' }, 'Aktif'), React.createElement('option', { value: '0' }, 'Nonaktif'))),
+                React.createElement('button', { className: 'filter-reset', type: 'button', onClick: resetFilters }, React.createElement(ArrowUturnLeftIcon, { 'aria-hidden': 'true' }), 'Reset'),
+                React.createElement('button', { className: 'category-add-button', type: 'button', onClick: () => { resetProductForm(); setShowForm(true); } }, React.createElement(PlusIcon, { 'aria-hidden': 'true' }), 'Tambah'),
+            ),
+            React.createElement(
+                'div',
+                { className: 'category-tabs' },
+                React.createElement('button', { className: `pill ${view === 'active' ? 'primary' : 'secondary'}`, onClick: () => setView('active') }, 'Aktif'),
+                React.createElement('button', { className: `pill ${view === 'trashed' ? 'primary' : 'secondary'}`, onClick: () => setView('trashed') }, 'Terhapus'),
             ),
             loading
                 ? React.createElement('div', { className: 'empty-state' }, 'Memuat data...')
@@ -272,19 +349,20 @@ export function Products() {
                       { className: 'table-container' },
                       React.createElement(
                           'table',
-                          { className: 'data-table' },
+                          { className: 'data-table category-data-table' },
                           React.createElement(
                               'thead',
                               null,
                               React.createElement(
                                   'tr',
                                   null,
-                                  React.createElement('th', null, 'SKU'),
+                                  React.createElement('th', null, 'Kode Produk'),
                                   React.createElement('th', null, 'Nama'),
                                   React.createElement('th', null, 'Kategori'),
                                   React.createElement('th', null, 'Harga Beli'),
                                   React.createElement('th', null, 'Harga Jual'),
                                   React.createElement('th', null, 'Stok'),
+                                  React.createElement('th', null, 'Status'),
                                   React.createElement('th', null, 'Aksi'),
                               ),
                           ),
@@ -295,17 +373,25 @@ export function Products() {
                                   React.createElement(
                                       'tr',
                                       { key: product.id },
-                                      React.createElement('td', null, product.sku),
+                                      React.createElement('td', null, product.product_code),
                                       React.createElement('td', null, product.name),
                                       React.createElement('td', null, getCategoryName(product.category_id)),
                                       React.createElement('td', null, money(product.cost_price)),
                                       React.createElement('td', null, money(product.selling_price)),
                                       React.createElement('td', null, `${product.stock} ${product.unit}`),
+                                      React.createElement('td', null, React.createElement('span', { className: `category-status ${view === 'trashed' ? 'deleted' : (product.is_active ? 'active' : 'inactive')}` }, view === 'trashed' ? 'Terhapus' : (product.is_active ? 'Aktif' : 'Nonaktif'))),
                                       React.createElement(
                                           'td',
                                           { className: 'action-buttons' },
-                                          React.createElement('button', { className: 'btn-edit', onClick: () => handleEdit(product) }, '✎'),
-                                          React.createElement('button', { className: 'btn-delete', onClick: () => handleDelete(product.id) }, '🗑'),
+                                          view === 'trashed'
+                                              ? React.createElement(React.Fragment, null,
+                                                    React.createElement('button', { className: 'btn-edit', type: 'button', title: 'Pulihkan produk', 'aria-label': 'Pulihkan produk', onClick: () => handleRestore(product.id) }, React.createElement(ArrowPathIcon, { 'aria-hidden': 'true' })),
+                                                    React.createElement('button', { className: 'btn-delete', type: 'button', title: 'Hapus permanen', 'aria-label': 'Hapus permanen', onClick: () => handleForceDelete(product.id) }, React.createElement(TrashIcon, { 'aria-hidden': 'true' })),
+                                                )
+                                              : React.createElement(React.Fragment, null,
+                                                    React.createElement('button', { className: 'btn-edit', type: 'button', title: 'Edit produk', 'aria-label': 'Edit produk', onClick: () => handleEdit(product) }, React.createElement(PencilSquareIcon, { 'aria-hidden': 'true' })),
+                                                    React.createElement('button', { className: 'btn-delete', type: 'button', title: 'Hapus produk', 'aria-label': 'Hapus produk', onClick: () => handleDelete(product.id) }, React.createElement(TrashIcon, { 'aria-hidden': 'true' })),
+                                                ),
                                       ),
                                   ),
                               ),
@@ -313,6 +399,7 @@ export function Products() {
                       ),
                   ),
         ),
-        message.text ? React.createElement('div', { className: `message ${message.type}` }, message.text) : null,
+        confirmDialog ? React.createElement('div', { className: 'confirm-overlay', role: 'presentation', onMouseDown: (event) => { if (event.target === event.currentTarget) setConfirmDialog(null); } }, React.createElement('div', { className: 'confirm-dialog', role: 'alertdialog', 'aria-modal': 'true', 'aria-labelledby': 'confirm-title', 'aria-describedby': 'confirm-message' }, React.createElement('div', { className: `confirm-icon ${confirmDialog.tone}` }, React.createElement(ExclamationTriangleIcon, { 'aria-hidden': 'true' })), React.createElement('div', { className: 'confirm-content' }, React.createElement('h2', { id: 'confirm-title' }, confirmDialog.title), React.createElement('p', { id: 'confirm-message' }, confirmDialog.message)), React.createElement('button', { className: 'confirm-close', type: 'button', onClick: () => setConfirmDialog(null), 'aria-label': 'Tutup dialog' }, React.createElement(XMarkIcon, { 'aria-hidden': 'true' })), React.createElement('div', { className: 'confirm-actions' }, React.createElement('button', { className: 'confirm-cancel', type: 'button', onClick: () => setConfirmDialog(null) }, 'Batal'), React.createElement('button', { className: `confirm-submit ${confirmDialog.tone}`, type: 'button', onClick: handleConfirm }, confirmDialog.confirmLabel)))) : null,
+        message.text ? React.createElement(AlertPopup, { message, onClose: () => setMessage({ type: '', text: '' }) }) : null,
     );
 }

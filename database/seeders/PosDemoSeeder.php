@@ -6,7 +6,6 @@ use App\Models\Category;
 use App\Models\Customer;
 use App\Models\Discount;
 use App\Models\Product;
-use App\Models\Supplier;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 
@@ -18,28 +17,15 @@ class PosDemoSeeder extends Seeder
     public function run(): void
     {
         $user = User::firstOrCreate(
-            ['email' => 'admin@tokopos.test'],
+            ['email' => 'admin@gmail.com'],
             [
                 'name' => 'Admin Toko',
-                'password' => bcrypt('password123'),
-            ]
-        );
-
-        $supplier = Supplier::firstOrCreate(
-            ['email' => 'supplier@tokopos.test'],
-            [
-                'name' => 'Supplier Utama',
-                'phone' => '081234567890',
-                'address' => 'Jl. Merdeka No. 10',
-                'city' => 'Bandung',
-                'province' => 'Jawa Barat',
-                'postal_code' => '40111',
-                'notes' => 'Supplier utama produk harian',
-                'is_active' => true,
+                'password' => bcrypt('123'),
             ]
         );
 
         $categoryNames = ['Makanan', 'Minuman', 'Snack', 'Peralatan'];
+        $categoryCodes = ['Makanan' => 'MKN', 'Minuman' => 'MIN', 'Snack' => 'SNK', 'Peralatan' => 'PRL'];
         $categoryMap = [];
 
         foreach ($categoryNames as $name) {
@@ -47,6 +33,7 @@ class PosDemoSeeder extends Seeder
                 ['slug' => str($name)->slug()->value()],
                 [
                     'name' => $name,
+                    'category_code' => $categoryCodes[$name],
                     'description' => 'Kategori ' . $name,
                     'is_active' => true,
                 ]
@@ -61,28 +48,24 @@ class PosDemoSeeder extends Seeder
                 'name' => 'Pelanggan Umum',
                 'phone' => '081122334455',
                 'address' => 'Jl. Raya No. 1',
-                'city' => 'Bandung',
-                'province' => 'Jawa Barat',
-                'postal_code' => '40111',
                 'total_purchases' => 0,
                 'purchase_count' => 0,
                 'status' => 'active',
-                'notes' => 'Pelanggan reguler',
             ]
         );
 
         $seedProducts = [
-            ['sku' => 'MKN-001', 'name' => 'Kopi Hitam', 'category' => 'Minuman', 'selling_price' => 12000, 'cost_price' => 8000, 'stock' => 45, 'min_stock' => 10, 'unit' => 'pcs'],
-            ['sku' => 'MKN-002', 'name' => 'Teh Botol', 'category' => 'Minuman', 'selling_price' => 9000, 'cost_price' => 6000, 'stock' => 30, 'min_stock' => 8, 'unit' => 'pcs'],
-            ['sku' => 'MKN-003', 'name' => 'Nasi Goreng', 'category' => 'Makanan', 'selling_price' => 18000, 'cost_price' => 12000, 'stock' => 20, 'min_stock' => 5, 'unit' => 'pcs'],
-            ['sku' => 'MKN-004', 'name' => 'Mie Goreng', 'category' => 'Makanan', 'selling_price' => 17000, 'cost_price' => 11000, 'stock' => 18, 'min_stock' => 5, 'unit' => 'pcs'],
-            ['sku' => 'MKN-005', 'name' => 'Keripik Kentang', 'category' => 'Snack', 'selling_price' => 8000, 'cost_price' => 5000, 'stock' => 50, 'min_stock' => 12, 'unit' => 'pcs'],
-            ['sku' => 'MKN-006', 'name' => 'Tissue', 'category' => 'Peralatan', 'selling_price' => 15000, 'cost_price' => 10000, 'stock' => 15, 'min_stock' => 6, 'unit' => 'box'],
+            ['product_code' => 'MKN-001', 'name' => 'Kopi Hitam', 'category' => 'Minuman', 'selling_price' => 12000, 'cost_price' => 8000, 'stock' => 45, 'min_stock' => 10, 'unit' => 'pcs'],
+            ['product_code' => 'MKN-002', 'name' => 'Teh Botol', 'category' => 'Minuman', 'selling_price' => 9000, 'cost_price' => 6000, 'stock' => 30, 'min_stock' => 8, 'unit' => 'pcs'],
+            ['product_code' => 'MKN-003', 'name' => 'Nasi Goreng', 'category' => 'Makanan', 'selling_price' => 18000, 'cost_price' => 12000, 'stock' => 20, 'min_stock' => 5, 'unit' => 'pcs'],
+            ['product_code' => 'MKN-004', 'name' => 'Mie Goreng', 'category' => 'Makanan', 'selling_price' => 17000, 'cost_price' => 11000, 'stock' => 18, 'min_stock' => 5, 'unit' => 'pcs'],
+            ['product_code' => 'MKN-005', 'name' => 'Keripik Kentang', 'category' => 'Snack', 'selling_price' => 8000, 'cost_price' => 5000, 'stock' => 50, 'min_stock' => 12, 'unit' => 'pcs'],
+            ['product_code' => 'MKN-006', 'name' => 'Tissue', 'category' => 'Peralatan', 'selling_price' => 15000, 'cost_price' => 10000, 'stock' => 15, 'min_stock' => 6, 'unit' => 'box'],
         ];
 
         foreach ($seedProducts as $product) {
             Product::firstOrCreate(
-                ['sku' => $product['sku']],
+                ['product_code' => $product['product_code']],
                 [
                     'category_id' => $categoryMap[$product['category']],
                     'name' => $product['name'],

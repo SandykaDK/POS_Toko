@@ -19,7 +19,6 @@ return new class extends Migration
             $table->datetime('transaction_date');
             $table->decimal('subtotal', 12, 2);
             $table->decimal('discount_amount', 12, 2)->default(0);
-            $table->decimal('tax_amount', 12, 2)->default(0);
             $table->decimal('total_amount', 12, 2);
             $table->string('payment_method', 50); // cash, card, transfer, etc
             $table->string('status', 20)->default('completed'); // pending, completed, cancelled

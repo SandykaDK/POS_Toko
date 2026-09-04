@@ -9,4 +9,4 @@ Route::get('/', function () {
 // Fallback route untuk SPA, tapi exclude /api/ paths
 Route::get('/{any?}', function () {
     return view('app');
-})->where('any', '^(?!api/).*');
+})->where('any', '^(?!(?:api|suppliers)(?:/|$)).*');

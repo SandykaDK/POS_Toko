@@ -48,7 +48,7 @@ class TransactionItemController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Transaction item created successfully',
+            'message' => 'Item transaksi berhasil ditambahkan',
             'data' => $item->load('transaction', 'product')
         ], 201);
     }
@@ -75,7 +75,7 @@ class TransactionItemController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Transaction item updated successfully',
+            'message' => 'Item transaksi berhasil diperbarui',
             'data' => $transactionItem->load('transaction', 'product')
         ]);
     }
@@ -85,7 +85,7 @@ class TransactionItemController extends Controller
         if ($transactionItem->transaction->status === 'completed') {
             return response()->json([
                 'success' => false,
-                'message' => 'Cannot delete items from completed transactions'
+                'message' => 'Item tidak dapat dihapus dari transaksi yang sudah selesai'
             ], 422);
         }
 
@@ -93,7 +93,7 @@ class TransactionItemController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Transaction item deleted successfully'
+            'message' => 'Item transaksi berhasil dihapus'
         ]);
     }
 }

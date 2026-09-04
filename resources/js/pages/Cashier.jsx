@@ -1,13 +1,22 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { money } from '../helpers.js';
 import { apiFetch, fetchList } from '../api.js';
+import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
+import { AlertPopup } from '../components/AlertPopup.jsx';
+
+const getLocalDateTime = () => {
+    const date = new Date();
+    const pad = (value) => String(value).padStart(2, '0');
+
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+};
 
 export function Cashier() {
     const [products, setProducts] = useState([]);
     const [categories, setCategories] = useState([]);
     const [selectedCategory, setSelectedCategory] = useState('all');
+    const [productSearch, setProductSearch] = useState('');
     const [cart, setCart] = useState([]);
-    const [customer, setCustomer] = useState('Umum');
     const [discountCode, setDiscountCode] = useState('');
     const [discountResult, setDiscountResult] = useState(null);
     const [message, setMessage] = useState({ type: '', text: '' });
@@ -18,8 +27,7 @@ export function Cashier() {
         [cart],
     );
     const discountAmount = discountResult?.discount_amount || 0;
-    const taxAmount = subtotal * 0.1;
-    const total = Math.max(subtotal + taxAmount - discountAmount, 0);
+    const total = Math.max(subtotal - discountAmount, 0);
 
     useEffect(() => {
         loadData();
@@ -101,14 +109,12 @@ export function Cashier() {
                 invoice_number: `INV-${Date.now()}`,
                 user_id: 1,
                 customer_id: null,
-                transaction_date: new Date().toISOString(),
+                transaction_date: getLocalDateTime(),
                 subtotal,
                 discount_amount: discountAmount,
-                tax_amount: taxAmount,
                 total_amount: total,
                 payment_method: 'cash',
                 status: 'completed',
-                notes: `Customer: ${customer}`,
                 items: cart.map((item) => ({
                     product_id: item.id,
                     quantity: item.quantity,
@@ -132,9 +138,18 @@ export function Cashier() {
     };
 
     const visibleProducts = useMemo(() => {
-        if (selectedCategory === 'all') return products;
-        return products.filter((product) => String(product.category_id) === String(selectedCategory));
-    }, [products, selectedCategory]);
+        const searchTerm = productSearch.trim().toLowerCase();
+
+        return products.filter((product) => {
+            const matchesCategory = selectedCategory === 'all'
+                || String(product.category_id) === String(selectedCategory);
+            const matchesSearch = !searchTerm
+                || product.name.toLowerCase().includes(searchTerm)
+                || product.product_code.toLowerCase().includes(searchTerm);
+
+            return matchesCategory && matchesSearch;
+        });
+    }, [products, selectedCategory, productSearch]);
 
     return React.createElement(
         React.Fragment,
@@ -142,13 +157,7 @@ export function Cashier() {
         React.createElement(
             'header',
             { className: 'topbar' },
-            React.createElement('h1', null, 'Point of Sale'),
-            React.createElement(
-                'div',
-                { className: 'topbar-actions' },
-                React.createElement('input', { className: 'search-box', placeholder: 'Cari produk...' }),
-                React.createElement('button', { className: 'pill secondary', type: 'button' }, '+ Produk'),
-            ),
+            React.createElement('h1', null, 'Kasir'),
         ),
         React.createElement(
             'div',
@@ -160,7 +169,12 @@ export function Cashier() {
                     'div',
                     { className: 'panel-header' },
                     React.createElement('h2', null, 'Katalog Produk'),
-                    React.createElement('span', { className: 'subtle' }, `${visibleProducts.length} item`),
+                    React.createElement(
+                        'div',
+                        { className: 'catalog-search-wrap' },
+                        React.createElement(MagnifyingGlassIcon, { className: 'catalog-search-icon', 'aria-hidden': 'true' }),
+                        React.createElement('input', { className: 'search-box catalog-search', value: productSearch, onChange: (e) => setProductSearch(e.target.value), placeholder: 'Cari produk...' }),
+                    ),
                 ),
                 React.createElement(
                     'div',
@@ -195,12 +209,12 @@ export function Cashier() {
                                   React.createElement(
                                       'div',
                                       { key: product.id, className: 'product-card', onClick: () => addToCart(product) },
-                                      React.createElement('div', { className: 'thumb' }, product.name.slice(0, 1).toUpperCase()),
+                                      React.createElement('div', { className: 'thumb' }, product.image ? React.createElement('img', { src: product.image.startsWith('http') ? product.image : `/storage/${product.image}`, alt: product.name }) : product.name.slice(0, 1).toUpperCase()),
                                       React.createElement('h3', null, product.name),
                                       React.createElement(
                                           'div',
                                           { className: 'product-meta' },
-                                          React.createElement('span', null, `SKU: ${product.sku}`),
+                                          React.createElement('span', null, `Kode Produk: ${product.product_code}`),
                                           React.createElement('span', null, `${product.stock} stok`),
                                       ),
                                       React.createElement(
@@ -226,17 +240,6 @@ export function Cashier() {
                 React.createElement(
                     'div',
                     { className: 'cart-body' },
-                    React.createElement(
-                        'div',
-                        { className: 'customer-row' },
-                        React.createElement('input', {
-                            className: 'control-input',
-                            value: customer,
-                            onChange: (e) => setCustomer(e.target.value),
-                            placeholder: 'Nama pelanggan',
-                        }),
-                        React.createElement('button', { className: 'pill secondary', type: 'button' }, 'Pilih'),
-                    ),
                     React.createElement(
                         'div',
                         { className: 'cart-item-list' },
@@ -290,12 +293,6 @@ export function Cashier() {
                         React.createElement(
                             'div',
                             { className: 'total-row' },
-                            React.createElement('span', null, 'Pajak'),
-                            React.createElement('strong', null, money(taxAmount)),
-                        ),
-                        React.createElement(
-                            'div',
-                            { className: 'total-row' },
                             React.createElement('span', null, 'Diskon'),
                             React.createElement('strong', null, `-${money(discountAmount)}`),
                         ),
@@ -312,7 +309,7 @@ export function Cashier() {
                         'Checkout',
                     ),
                     message.text
-                        ? React.createElement('div', { className: `message ${message.type}` }, message.text)
+                        ? React.createElement(AlertPopup, { message, onClose: () => setMessage({ type: '', text: '' }) })
                         : null,
                 ),
             ),

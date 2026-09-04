@@ -1,0 +1,65 @@
+.products-form-modal {
+    width: min(92%, 760px);
+    max-width: 760px;
+}
+
+.products-form {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 12px 14px;
+}
+
+.products-form .product-field-full {
+    grid-column: 1 / -1;
+}
+
+.products-form .product-field-half {
+    grid-column: span 3;
+}
+
+.products-form .product-field-third {
+    grid-column: span 2;
+}
+
+.products-form .product-form-actions {
+    grid-column: 1 / -1;
+    margin-top: 4px;
+}
+
+.products-form .form-group textarea {
+    min-height: 58px;
+}
+
+.products-form input[type='file'] {
+    padding: 8px;
+    border: 1px dashed #cbd5e1;
+    border-radius: 7px;
+    background: #f8fafc;
+    font-size: 13px;
+}
+
+.product-image-hint {
+    color: #64748b;
+    font-size: 12px;
+}
+
+@media (max-width: 600px) {
+    .products-form-modal {
+        width: 94%;
+    }
+
+    .products-form {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .products-form .product-field-half,
+    .products-form .product-field-third {
+        grid-column: span 1;
+    }
+}
+
+@media (max-width: 420px) {
+    .products-form {
+        display: flex;
+    }
+}

@@ -3,6 +3,28 @@
     font-size: 0.8rem;
 }
 
+.catalog-search-wrap {
+    position: relative;
+    width: min(300px, 100%);
+}
+
+.catalog-search-wrap .catalog-search {
+    width: 100%;
+    padding-left: 2.5rem;
+}
+
+.catalog-search-icon {
+    position: absolute;
+    top: 50%;
+    left: 0.85rem;
+    z-index: 1;
+    width: 1.1rem;
+    height: 1.1rem;
+    color: var(--muted);
+    pointer-events: none;
+    transform: translateY(-50%);
+}
+
 .product-card:hover {
     transform: translateY(-2px);
     box-shadow: 0 12px 24px rgba(37, 99, 235, 0.08);
