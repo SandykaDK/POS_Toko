@@ -23,6 +23,7 @@ Route::middleware('web')->group(function () {
     Route::middleware('auth')->group(function () {
         Route::get('auth/me', [AuthController::class, 'me']);
         Route::post('auth/logout', [AuthController::class, 'logout']);
+
         Route::get('dashboard', [DashboardController::class, 'index']);
 
         // Custom routes harus SEBELUM resource routes agar di-match terlebih dahulu

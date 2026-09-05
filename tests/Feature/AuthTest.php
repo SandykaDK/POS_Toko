@@ -41,7 +41,9 @@ class AuthTest extends TestCase
     {
         $this->actingAs(User::factory()->create());
 
-        $this->postJson('/api/auth/logout')->assertOk();
+        $this->postJson('/api/auth/logout')
+            ->assertOk()
+            ->assertJsonStructure(['csrf_token']);
         $this->getJson('/api/auth/me')->assertUnauthorized();
     }
 }

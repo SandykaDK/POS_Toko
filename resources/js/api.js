@@ -19,6 +19,10 @@ export async function apiFetch(endpoint, options = {}) {
 
     const payload = await response.json().catch(() => ({}));
 
+    if (payload.csrf_token) {
+        document.querySelector('meta[name="csrf-token"]')?.setAttribute('content', payload.csrf_token);
+    }
+
     if (!response.ok) {
         const error = new Error(payload.message || 'Request failed');
         error.status = response.status;
@@ -33,12 +37,6 @@ export function login(credentials) {
     return apiFetch('/auth/login', {
         method: 'POST',
         body: JSON.stringify(credentials),
-    }).then((payload) => {
-        if (payload.csrf_token) {
-            document.querySelector('meta[name="csrf-token"]')?.setAttribute('content', payload.csrf_token);
-        }
-
-        return payload;
     });
 }
 

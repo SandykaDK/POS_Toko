@@ -132,7 +132,7 @@ export function Discounts() {
                   { className: 'form-overlay' },
                   React.createElement(
                       'div',
-                      { className: 'form-modal' },
+                      { className: 'form-modal discounts-form-modal' },
                       React.createElement(
                           'div',
                           { className: 'form-header' },
@@ -141,10 +141,10 @@ export function Discounts() {
                       ),
                       React.createElement(
                           'form',
-                          { onSubmit: handleSubmit },
+                          { className: 'discounts-form', onSubmit: handleSubmit },
                           React.createElement(
                               'div',
-                              { className: 'form-group' },
+                              { className: 'form-group discount-field-half' },
                               React.createElement('label', null, 'Kode Diskon'),
                               React.createElement('input', {
                                   type: 'text',
@@ -155,7 +155,7 @@ export function Discounts() {
                           ),
                           React.createElement(
                               'div',
-                              { className: 'form-group' },
+                              { className: 'form-group discount-field-half' },
                               React.createElement('label', null, 'Nama Diskon'),
                               React.createElement('input', {
                                   type: 'text',
@@ -166,7 +166,7 @@ export function Discounts() {
                           ),
                           React.createElement(
                               'div',
-                              { className: 'form-group' },
+                              { className: 'form-group discount-field-full' },
                               React.createElement('label', null, 'Deskripsi'),
                               React.createElement('textarea', {
                                   value: formData.description,
@@ -176,7 +176,7 @@ export function Discounts() {
                           ),
                           React.createElement(
                               'div',
-                              { className: 'form-group' },
+                              { className: 'form-group discount-field-quarter' },
                               React.createElement('label', null, 'Tipe Diskon'),
                               React.createElement(
                                   'select',
@@ -190,7 +190,7 @@ export function Discounts() {
                           ),
                           React.createElement(
                               'div',
-                              { className: 'form-group' },
+                              { className: 'form-group discount-field-quarter' },
                               React.createElement('label', null, 'Nilai Diskon'),
                               React.createElement('input', {
                                   type: 'number',
@@ -201,7 +201,7 @@ export function Discounts() {
                           ),
                           React.createElement(
                               'div',
-                              { className: 'form-group' },
+                              { className: 'form-group discount-field-quarter' },
                               React.createElement('label', null, 'Diskon Maksimal'),
                               React.createElement('input', {
                                   type: 'number',
@@ -211,7 +211,7 @@ export function Discounts() {
                           ),
                           React.createElement(
                               'div',
-                              { className: 'form-group' },
+                              { className: 'form-group discount-field-quarter' },
                               React.createElement('label', null, 'Pembelian Minimum'),
                               React.createElement('input', {
                                   type: 'number',
@@ -221,7 +221,7 @@ export function Discounts() {
                           ),
                           React.createElement(
                               'div',
-                              { className: 'form-group' },
+                              { className: 'form-group discount-field-quarter' },
                               React.createElement('label', null, 'Maksimal Penggunaan'),
                               React.createElement('input', {
                                   type: 'number',
@@ -231,7 +231,7 @@ export function Discounts() {
                           ),
                           React.createElement(
                               'div',
-                              { className: 'form-group' },
+                              { className: 'form-group discount-field-quarter' },
                               React.createElement('label', null, 'Tanggal Mulai'),
                               React.createElement('input', {
                                   type: 'date',
@@ -241,7 +241,7 @@ export function Discounts() {
                           ),
                           React.createElement(
                               'div',
-                              { className: 'form-group' },
+                              { className: 'form-group discount-field-quarter' },
                               React.createElement('label', null, 'Tanggal Berakhir'),
                               React.createElement('input', {
                                   type: 'date',
@@ -251,7 +251,7 @@ export function Discounts() {
                           ),
                           React.createElement(
                               'div',
-                              { className: 'form-group checkbox' },
+                              { className: 'form-group checkbox discount-field-quarter' },
                               React.createElement('input', {
                                   type: 'checkbox',
                                   id: 'is_active',
@@ -262,7 +262,7 @@ export function Discounts() {
                           ),
                           React.createElement(
                               'div',
-                              { className: 'form-actions' },
+                              { className: 'form-actions discount-form-actions' },
                               React.createElement('button', { type: 'submit', className: 'pill primary' }, editingId ? 'Simpan Perubahan' : 'Tambah Diskon'),
                               React.createElement('button', { type: 'button', className: 'pill secondary', onClick: () => setShowForm(false) }, 'Batal'),
                           ),

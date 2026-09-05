@@ -37,7 +37,7 @@ export function Cashier() {
         try {
             setLoading(true);
             const [productsRes, categoriesRes] = await Promise.all([
-                fetchList('products', 1, 100),
+                fetchList('products', 1, 100, { active: true }),
                 fetchList('categories', 1, 100),
             ]);
 
@@ -221,7 +221,10 @@ export function Cashier() {
                                           'div',
                                           { className: 'product-price' },
                                           React.createElement('span', null, money(product.selling_price)),
-                                          React.createElement('span', { className: 'dot' }),
+                                              React.createElement('span', {
+                                                  className: `dot ${product.stock > product.min_stock ? '' : 'low-stock'}`,
+                                                  'aria-label': product.stock > product.min_stock ? 'Stok aman' : 'Stok menipis',
+                                              }),
                                       ),
                                   ),
                               ),

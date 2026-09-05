@@ -61,3 +61,7 @@
     display: inline-block;
     background: var(--success);
 }
+
+.dot.low-stock {
+    background: var(--danger);
+}

@@ -68,6 +68,27 @@ class TransactionController extends Controller
                 'items.*.discount_per_item' => 'numeric|min:0',
             ]);
 
+            $products = Product::whereIn('id', collect($validated['items'])->pluck('product_id')->unique())
+                ->lockForUpdate()
+                ->get()
+                ->keyBy('id');
+
+            $requestedQuantities = collect($validated['items'])
+                ->groupBy('product_id')
+                ->map(fn ($items) => $items->sum('quantity'));
+
+            foreach ($requestedQuantities as $productId => $quantity) {
+                $product = $products->get($productId);
+
+                if (!$product->is_active) {
+                    throw new \RuntimeException("Produk {$product->name} tidak aktif.");
+                }
+
+                if ($quantity > $product->stock) {
+                    throw new \RuntimeException("Stok produk {$product->name} tidak mencukupi. Stok tersedia: {$product->stock}.");
+                }
+            }
+
             $transaction = Transaction::create([
                 'invoice_number' => $validated['invoice_number'],
                 'user_id' => $validated['user_id'],
@@ -91,8 +112,7 @@ class TransactionController extends Controller
                     'subtotal' => ($item['quantity'] * $item['unit_price']) - ($item['discount_per_item'] ?? 0),
                 ]);
 
-                Product::findOrFail($item['product_id'])
-                    ->decrement('stock', $item['quantity']);
+                $products->get($item['product_id'])->decrement('stock', $item['quantity']);
             }
 
             if ($transaction->customer) {

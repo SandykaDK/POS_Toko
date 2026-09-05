@@ -33,4 +33,4 @@ Response login sukses mengembalikan `message` dan `user`. Login gagal mengembali
 
 ## Akun demo
 
-Seeder demo menyediakan `admin@tokopos.test` dengan password `password123` untuk pengujian lokal.
+Seeder demo menyediakan `admin@gmail.com` dengan password `123` untuk pengujian lokal.

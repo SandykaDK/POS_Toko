@@ -1,0 +1,51 @@
+.discounts-form-modal {
+    width: min(92%, 820px);
+    max-width: 820px;
+}
+
+.discounts-form {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px 14px;
+}
+
+.discounts-form .discount-field-full {
+    grid-column: 1 / -1;
+}
+
+.discounts-form .discount-field-half {
+    grid-column: span 2;
+}
+
+.discounts-form .discount-field-quarter {
+    grid-column: span 1;
+}
+
+.discounts-form .discount-form-actions {
+    grid-column: 1 / -1;
+    margin-top: 4px;
+}
+
+.discounts-form textarea {
+    min-height: 64px;
+}
+
+@media (max-width: 640px) {
+    .discounts-form-modal {
+        width: 94%;
+    }
+
+    .discounts-form {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .discounts-form .discount-field-quarter {
+        grid-column: span 1;
+    }
+}
+
+@media (max-width: 420px) {
+    .discounts-form {
+        display: flex;
+    }
+}
