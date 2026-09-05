@@ -186,8 +186,9 @@ export function Categories() {
                           React.createElement(
                               'div',
                               { className: 'form-group' },
-                              React.createElement('label', null, 'Nama Kategori'),
+                              React.createElement('label', { htmlFor: 'category_name' }, 'Nama Kategori'),
                               React.createElement('input', {
+                                  id: 'category_name',
                                   type: 'text',
                                   value: formData.name,
                                   onChange: handleNameChange,
@@ -378,7 +379,7 @@ export function Categories() {
                                                     null,
                                                     React.createElement(
                                                         'button',
-                                                        { className: 'btn-edit', type: 'button', title: 'Edit kategori', 'aria-label': 'Edit kategori', onClick: () => handleEdit(category) },
+                                                        { className: 'btn-edit', type: 'button', title: 'Edit Kategori', 'aria-label': 'Edit Kategori', onClick: () => handleEdit(category) },
                                                         React.createElement(PencilSquareIcon, { 'aria-hidden': 'true' }),
                                                     ),
                                                     React.createElement(

@@ -24,8 +24,8 @@ class PosDemoSeeder extends Seeder
             ]
         );
 
-        $categoryNames = ['Makanan', 'Minuman', 'Snack', 'Peralatan'];
-        $categoryCodes = ['Makanan' => 'MKN', 'Minuman' => 'MIN', 'Snack' => 'SNK', 'Peralatan' => 'PRL'];
+        $categoryNames = ['Makanan', 'Minuman', 'Snack', 'Peralatan', 'Sembako'];
+        $categoryCodes = ['Makanan' => 'MKN', 'Minuman' => 'MIN', 'Snack' => 'SNK', 'Peralatan' => 'PRL', 'Sembako' => 'SBK'];
         $categoryMap = [];
 
         foreach ($categoryNames as $name) {
