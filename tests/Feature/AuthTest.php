@@ -14,12 +14,14 @@ class AuthTest extends TestCase
     {
         $user = User::factory()->create(['password' => 'password123']);
 
-        $this->postJson('/api/auth/login', [
+        $loginResponse = $this->postJson('/api/auth/login', [
             'email' => $user->email,
             'password' => 'password123',
         ])->assertOk()->assertJsonPath('user.id', $user->id);
 
-        $this->getJson('/api/auth/me')->assertOk()->assertJsonPath('user.id', $user->id);
+        $token = $loginResponse->json('token');
+
+        $this->withToken($token)->getJson('/api/auth/me')->assertOk()->assertJsonPath('user.id', $user->id);
     }
 
     public function test_invalid_login_is_rejected(): void
@@ -39,11 +41,17 @@ class AuthTest extends TestCase
 
     public function test_user_can_logout(): void
     {
-        $this->actingAs(User::factory()->create());
+        $user = User::factory()->create(['password' => 'password123']);
+        $token = $this->postJson('/api/auth/login', [
+            'email' => $user->email,
+            'password' => 'password123',
+        ])->json('token');
 
-        $this->postJson('/api/auth/logout')
-            ->assertOk()
-            ->assertJsonStructure(['csrf_token']);
-        $this->getJson('/api/auth/me')->assertUnauthorized();
+        $this->withToken($token)->postJson('/api/auth/logout')
+            ->assertOk();
+
+        $this->assertDatabaseMissing('personal_access_tokens', [
+            'token' => hash('sha256', $token),
+        ]);
     }
 }

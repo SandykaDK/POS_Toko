@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Laravel\Sanctum\PersonalAccessToken;
 
 class AuthController extends Controller
 {
@@ -16,21 +18,23 @@ class AuthController extends Controller
             'remember' => ['sometimes', 'boolean'],
         ]);
 
-        if (! Auth::attempt([
+        if (! Auth::validate([
             'email' => $credentials['email'],
             'password' => $credentials['password'],
-        ], $credentials['remember'] ?? false)) {
+        ])) {
             return response()->json([
                 'message' => 'Email atau password yang dimasukkan salah.',
             ], 422);
         }
 
-        $request->session()->regenerate();
+        $user = User::query()->where('email', $credentials['email'])->firstOrFail();
+        $token = $user->createToken('api-token')->plainTextToken;
 
         return response()->json([
             'message' => 'Login berhasil.',
-            'user' => $request->user(),
-            'csrf_token' => csrf_token(),
+            'user' => $user,
+            'token' => $token,
+            'token_type' => 'Bearer',
         ]);
     }
 
@@ -41,13 +45,14 @@ class AuthController extends Controller
 
     public function logout(Request $request): JsonResponse
     {
-        Auth::logout();
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
+        $accessToken = $request->user()->currentAccessToken();
+
+        if ($accessToken instanceof PersonalAccessToken) {
+            $accessToken->delete();
+        }
 
         return response()->json([
             'message' => 'Logout berhasil.',
-            'csrf_token' => csrf_token(),
         ]);
     }
 }
