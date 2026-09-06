@@ -1,12 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { ArrowPathIcon, ArrowUturnLeftIcon, ExclamationTriangleIcon, PencilSquareIcon, PlusIcon, TrashIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import TablePagination from '@mui/material/TablePagination';
 import { fetchList, fetchTrashed, createItem, updateItem, deleteItem, restoreItem, forceDeleteItem } from '../api.js';
 import { AlertPopup } from '../components/AlertPopup.jsx';
 
 export function Categories() {
     const [categories, setCategories] = useState([]);
     const [view, setView] = useState('active');
-        const [statusFilter, setStatusFilter] = useState('');
+    const [page, setPage] = useState(0);
+    const [rowsPerPage, setRowsPerPage] = useState(10);
+    const [statusFilter, setStatusFilter] = useState('');
     const [loading, setLoading] = useState(true);
     const [showForm, setShowForm] = useState(false);
     const [editingId, setEditingId] = useState(null);
@@ -21,6 +24,7 @@ export function Categories() {
     });
 
     useEffect(() => {
+        setPage(0);
         loadData();
     }, [view, statusFilter]);
 
@@ -158,6 +162,17 @@ export function Categories() {
         setConfirmDialog(null);
         if (action) await action();
     };
+
+    const handleChangePage = (event, nextPage) => {
+        setPage(nextPage);
+    };
+
+    const handleChangeRowsPerPage = (event) => {
+        setRowsPerPage(Number.parseInt(event.target.value, 10));
+        setPage(0);
+    };
+
+    const paginatedCategories = categories.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
     return React.createElement(
         React.Fragment,
@@ -339,7 +354,7 @@ export function Categories() {
                           React.createElement(
                               'tbody',
                               null,
-                              categories.map((category) =>
+                              paginatedCategories.map((category) =>
                                   React.createElement(
                                       'tr',
                                       { key: category.id },
@@ -393,6 +408,23 @@ export function Categories() {
                               ),
                           ),
                       ),
+                      React.createElement(TablePagination, {
+                          component: 'div',
+                          count: categories.length,
+                          page,
+                          onPageChange: handleChangePage,
+                          rowsPerPage,
+                          onRowsPerPageChange: handleChangeRowsPerPage,
+                          rowsPerPageOptions: [5, 10, 25, 50],
+                          labelRowsPerPage: 'Baris per halaman',
+                          labelDisplayedRows: ({ from, to, count }) => `${from}-${to} dari ${count}`,
+                          sx: {
+                              fontFamily: 'inherit',
+                              '& .MuiTablePagination-toolbar, & .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows, & .MuiTablePagination-select, & .MuiTablePagination-actions': {
+                                  fontFamily: 'inherit',
+                              },
+                          },
+                      }),
                   ),
         ),
         message.text ? React.createElement(AlertPopup, { message, onClose: () => setMessage({ type: '', text: '' }) }) : null,

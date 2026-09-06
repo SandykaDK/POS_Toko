@@ -1,12 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { money } from '../helpers.js';
 import { ArrowPathIcon, ArrowUturnLeftIcon, ExclamationTriangleIcon, PencilSquareIcon, PlusIcon, TrashIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import TablePagination from '@mui/material/TablePagination';
 import { fetchList, fetchTrashed, createItem, updateItem, deleteItem, restoreItem, forceDeleteItem } from '../api.js';
 import { AlertPopup } from '../components/AlertPopup.jsx';
 
 export function Discounts() {
     const [discounts, setDiscounts] = useState([]);
     const [view, setView] = useState('active');
+    const [page, setPage] = useState(0);
+    const [rowsPerPage, setRowsPerPage] = useState(10);
     const [statusFilter, setStatusFilter] = useState('');
     const [loading, setLoading] = useState(true);
     const [showForm, setShowForm] = useState(false);
@@ -28,6 +31,7 @@ export function Discounts() {
     });
 
     useEffect(() => {
+        setPage(0);
         loadData();
     }, [view, statusFilter]);
 
@@ -117,6 +121,17 @@ export function Discounts() {
         setConfirmDialog(null);
         if (action) await action();
     };
+
+    const handleChangePage = (event, nextPage) => {
+        setPage(nextPage);
+    };
+
+    const handleChangeRowsPerPage = (event) => {
+        setRowsPerPage(Number.parseInt(event.target.value, 10));
+        setPage(0);
+    };
+
+    const paginatedDiscounts = discounts.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
     return React.createElement(
         React.Fragment,
@@ -311,7 +326,7 @@ export function Discounts() {
                           React.createElement(
                               'tbody',
                               null,
-                              discounts.map((discount) =>
+                              paginatedDiscounts.map((discount) =>
                                   React.createElement(
                                       'tr',
                                       { key: discount.id },
@@ -334,6 +349,23 @@ export function Discounts() {
                               ),
                           ),
                       ),
+                      React.createElement(TablePagination, {
+                          component: 'div',
+                          count: discounts.length,
+                          page,
+                          onPageChange: handleChangePage,
+                          rowsPerPage,
+                          onRowsPerPageChange: handleChangeRowsPerPage,
+                          rowsPerPageOptions: [5, 10, 25, 50],
+                          labelRowsPerPage: 'Baris per halaman',
+                          labelDisplayedRows: ({ from, to, count }) => `${from}-${to} dari ${count}`,
+                          sx: {
+                              fontFamily: 'inherit',
+                              '& .MuiTablePagination-toolbar, & .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows, & .MuiTablePagination-select, & .MuiTablePagination-actions': {
+                                  fontFamily: 'inherit',
+                              },
+                          },
+                      }),
                   ),
         ),
         confirmDialog ? React.createElement('div', { className: 'confirm-overlay', role: 'presentation', onMouseDown: (event) => { if (event.target === event.currentTarget) setConfirmDialog(null); } }, React.createElement('div', { className: 'confirm-dialog', role: 'alertdialog', 'aria-modal': 'true', 'aria-labelledby': 'confirm-title', 'aria-describedby': 'confirm-message' }, React.createElement('div', { className: `confirm-icon ${confirmDialog.tone}` }, React.createElement(ExclamationTriangleIcon, { 'aria-hidden': 'true' })), React.createElement('div', { className: 'confirm-content' }, React.createElement('h2', { id: 'confirm-title' }, confirmDialog.title), React.createElement('p', { id: 'confirm-message' }, confirmDialog.message)), React.createElement('button', { className: 'confirm-close', type: 'button', onClick: () => setConfirmDialog(null), 'aria-label': 'Tutup dialog' }, React.createElement(XMarkIcon, { 'aria-hidden': 'true' })), React.createElement('div', { className: 'confirm-actions' }, React.createElement('button', { className: 'confirm-cancel', type: 'button', onClick: () => setConfirmDialog(null) }, 'Batal'), React.createElement('button', { className: `confirm-submit ${confirmDialog.tone}`, type: 'button', onClick: handleConfirm }, confirmDialog.confirmLabel)))) : null,

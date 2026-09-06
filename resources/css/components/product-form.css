@@ -1,6 +1,7 @@
 .products-form-modal {
     width: min(92%, 760px);
     max-width: 760px;
+    max-height: calc(100vh - 20px);
 }
 
 .products-form {

@@ -141,13 +141,14 @@ export function Cashier() {
         const searchTerm = productSearch.trim().toLowerCase();
 
         return products.filter((product) => {
+            const hasStock = Number(product.stock) > 0;
             const matchesCategory = selectedCategory === 'all'
                 || String(product.category_id) === String(selectedCategory);
             const matchesSearch = !searchTerm
                 || product.name.toLowerCase().includes(searchTerm)
                 || product.product_code.toLowerCase().includes(searchTerm);
 
-            return matchesCategory && matchesSearch;
+            return hasStock && matchesCategory && matchesSearch;
         });
     }, [products, selectedCategory, productSearch]);
 
