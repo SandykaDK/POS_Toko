@@ -1,16 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { money } from '../helpers.js';
-import { ArrowPathIcon, ArrowUturnLeftIcon, ExclamationTriangleIcon, PencilSquareIcon, PlusIcon, TrashIcon, XMarkIcon } from '@heroicons/react/24/outline';
-import TablePagination from '@mui/material/TablePagination';
+import { ArrowPathIcon, ExclamationTriangleIcon, PencilSquareIcon, PlusIcon, TrashIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import Paper from '@mui/material/Paper';
+import { DataGrid } from '@mui/x-data-grid';
 import { fetchList, fetchTrashed, createItem, updateItem, deleteItem, restoreItem, forceDeleteItem } from '../api.js';
 import { AlertPopup } from '../components/AlertPopup.jsx';
 
 export function Discounts() {
     const [discounts, setDiscounts] = useState([]);
     const [view, setView] = useState('active');
-    const [page, setPage] = useState(0);
-    const [rowsPerPage, setRowsPerPage] = useState(10);
+    const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 10 });
     const [statusFilter, setStatusFilter] = useState('');
+    const [discountSearch, setDiscountSearch] = useState('');
     const [loading, setLoading] = useState(true);
     const [showForm, setShowForm] = useState(false);
     const [editingId, setEditingId] = useState(null);
@@ -31,7 +32,7 @@ export function Discounts() {
     });
 
     useEffect(() => {
-        setPage(0);
+        setPaginationModel((current) => ({ ...current, page: 0 }));
         loadData();
     }, [view, statusFilter]);
 
@@ -53,8 +54,6 @@ export function Discounts() {
             setLoading(false);
         }
     };
-
-    const resetFilters = () => setStatusFilter('');
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -122,16 +121,67 @@ export function Discounts() {
         if (action) await action();
     };
 
-    const handleChangePage = (event, nextPage) => {
-        setPage(nextPage);
-    };
+    const filteredDiscounts = discounts.filter((discount) => {
+        const searchTerm = discountSearch.trim().toLowerCase();
 
-    const handleChangeRowsPerPage = (event) => {
-        setRowsPerPage(Number.parseInt(event.target.value, 10));
-        setPage(0);
-    };
+        return !searchTerm
+            || discount.code.toLowerCase().includes(searchTerm)
+            || discount.name.toLowerCase().includes(searchTerm);
+    });
 
-    const paginatedDiscounts = discounts.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+    const columns = [
+        { field: 'code', headerName: 'Kode', minWidth: 130, flex: 1 },
+        { field: 'name', headerName: 'Nama', minWidth: 190, flex: 1.4 },
+        {
+            field: 'type',
+            headerName: 'Tipe',
+            minWidth: 100,
+            flex: 0.7,
+            valueGetter: (_value, row) => row.type === 'percentage' ? '%' : 'Rp',
+        },
+        {
+            field: 'value',
+            headerName: 'Nilai',
+            minWidth: 130,
+            flex: 1,
+            type: 'number',
+            valueGetter: (_value, row) => Number(row.value),
+            renderCell: (params) => params.row.type === 'percentage' ? `${params.value}%` : money(params.value),
+        },
+        {
+            field: 'min_purchase',
+            headerName: 'Min Pembelian',
+            minWidth: 145,
+            flex: 1,
+            type: 'number',
+            valueGetter: (_value, row) => Number(row.min_purchase),
+            renderCell: (params) => money(params.value),
+        },
+        {
+            field: 'is_active',
+            headerName: 'Status',
+            minWidth: 110,
+            flex: 0.8,
+            valueGetter: (_value, row) => view === 'trashed' ? 'Terhapus' : (row.is_active ? 'Aktif' : 'Nonaktif'),
+            renderCell: (params) => React.createElement('span', { className: `category-status ${view === 'trashed' ? 'deleted' : (params.row.is_active ? 'active' : 'inactive')}` }, params.value),
+        },
+        {
+            field: 'actions',
+            headerName: 'Aksi',
+            minWidth: 125,
+            sortable: false,
+            filterable: false,
+            renderCell: (params) => React.createElement('div', { className: 'action-buttons' }, view === 'trashed'
+                ? React.createElement(React.Fragment, null,
+                      React.createElement('button', { className: 'btn-edit', type: 'button', title: 'Pulihkan diskon', 'aria-label': 'Pulihkan diskon', onClick: () => handleRestore(params.row.id) }, React.createElement(ArrowPathIcon, { 'aria-hidden': 'true' })),
+                      React.createElement('button', { className: 'btn-delete', type: 'button', title: 'Hapus permanen', 'aria-label': 'Hapus permanen', onClick: () => handleForceDelete(params.row.id) }, React.createElement(TrashIcon, { 'aria-hidden': 'true' })),
+                  )
+                : React.createElement(React.Fragment, null,
+                      React.createElement('button', { className: 'btn-edit', type: 'button', title: 'Edit diskon', 'aria-label': 'Edit diskon', onClick: () => handleEdit(params.row) }, React.createElement(PencilSquareIcon, { 'aria-hidden': 'true' })),
+                      React.createElement('button', { className: 'btn-delete', type: 'button', title: 'Hapus diskon', 'aria-label': 'Hapus diskon', onClick: () => handleDelete(params.row.id) }, React.createElement(TrashIcon, { 'aria-hidden': 'true' })),
+                  )),
+        },
+    ];
 
     return React.createElement(
         React.Fragment,
@@ -289,81 +339,34 @@ export function Discounts() {
             'section',
             { className: 'panel category-panel' },
             React.createElement('div', { className: 'category-toolbar' },
+                React.createElement('label', { className: 'category-filter product-search-filter' }, React.createElement('span', null, 'Cari Diskon'), React.createElement('input', { className: 'search-box', type: 'search', value: discountSearch, onChange: (event) => { setDiscountSearch(event.target.value); setPaginationModel((current) => ({ ...current, page: 0 })); }, placeholder: 'Kode atau nama diskon' })),
                 React.createElement('label', { className: 'category-filter' }, React.createElement('span', null, 'Status'), React.createElement('select', { value: statusFilter, onChange: (event) => setStatusFilter(event.target.value), disabled: view === 'trashed' }, React.createElement('option', { value: '' }, 'Semua Status'), React.createElement('option', { value: '1' }, 'Aktif'), React.createElement('option', { value: '0' }, 'Nonaktif'))),
-                React.createElement('button', { className: 'filter-reset', type: 'button', onClick: resetFilters }, React.createElement(ArrowUturnLeftIcon, { 'aria-hidden': 'true' }), 'Reset'),
                 React.createElement('button', { className: 'category-add-button', type: 'button', onClick: () => setShowForm(true) }, React.createElement(PlusIcon, { 'aria-hidden': 'true' }), 'Tambah'),
             ),
-            React.createElement('div', { className: 'category-tabs' }, React.createElement('button', { className: `pill ${view === 'active' ? 'primary' : 'secondary'}`, onClick: () => setView('active') }, 'Aktif'), React.createElement('button', { className: `pill ${view === 'trashed' ? 'primary' : 'secondary'}`, onClick: () => setView('trashed') }, 'Terhapus')),
-            React.createElement(
-                'div',
-                { className: 'panel-header' },
-                React.createElement('h2', null, 'Daftar Diskon'),
-                React.createElement('span', { className: 'subtle' }, `${discounts.length} item`),
-            ),
+            React.createElement('div', { className: 'category-tabs' }, React.createElement('button', { className: `pill ${view === 'active' ? 'primary' : 'secondary'}`, onClick: () => setView('active') }, 'Semua Data'), React.createElement('button', { className: `pill ${view === 'trashed' ? 'primary' : 'secondary'}`, onClick: () => setView('trashed') }, 'Terhapus')),
             loading
                 ? React.createElement('div', { className: 'empty-state' }, 'Memuat data...')
                 : React.createElement(
-                      'div',
-                      { className: 'table-container' },
-                      React.createElement(
-                          'table',
-                          { className: 'data-table category-data-table' },
-                          React.createElement(
-                              'thead',
-                              null,
-                              React.createElement(
-                                  'tr',
-                                  null,
-                                  React.createElement('th', null, 'Kode'),
-                                  React.createElement('th', null, 'Nama'),
-                                  React.createElement('th', null, 'Tipe'),
-                                  React.createElement('th', null, 'Nilai'),
-                                  React.createElement('th', null, 'Min Pembelian'),
-                                  React.createElement('th', null, 'Status'),
-                                  React.createElement('th', null, 'Aksi'),
-                              ),
-                          ),
-                          React.createElement(
-                              'tbody',
-                              null,
-                              paginatedDiscounts.map((discount) =>
-                                  React.createElement(
-                                      'tr',
-                                      { key: discount.id },
-                                      React.createElement('td', null, discount.code),
-                                      React.createElement('td', null, discount.name),
-                                      React.createElement('td', null, discount.type === 'percentage' ? '%' : 'Rp'),
-                                      React.createElement(
-                                          'td',
-                                          null,
-                                          discount.type === 'percentage' ? `${discount.value}%` : money(discount.value),
-                                      ),
-                                      React.createElement('td', null, money(discount.min_purchase)),
-                                      React.createElement('td', null, React.createElement('span', { className: `category-status ${view === 'trashed' ? 'deleted' : discount.is_active ? 'active' : 'inactive'}` }, view === 'trashed' ? 'Terhapus' : discount.is_active ? 'Aktif' : 'Nonaktif')),
-                                      React.createElement(
-                                          'td',
-                                          { className: 'action-buttons' },
-                                          view === 'trashed' ? React.createElement(React.Fragment, null, React.createElement('button', { className: 'btn-edit', title: 'Pulihkan diskon', 'aria-label': 'Pulihkan diskon', onClick: () => handleRestore(discount.id) }, React.createElement(ArrowPathIcon, { 'aria-hidden': 'true' })), React.createElement('button', { className: 'btn-delete', title: 'Hapus permanen', 'aria-label': 'Hapus permanen', onClick: () => handleForceDelete(discount.id) }, React.createElement(TrashIcon, { 'aria-hidden': 'true' }))) : React.createElement(React.Fragment, null, React.createElement('button', { className: 'btn-edit', title: 'Edit diskon', 'aria-label': 'Edit diskon', onClick: () => handleEdit(discount) }, React.createElement(PencilSquareIcon, { 'aria-hidden': 'true' })), React.createElement('button', { className: 'btn-delete', title: 'Hapus diskon', 'aria-label': 'Hapus diskon', onClick: () => handleDelete(discount.id) }, React.createElement(TrashIcon, { 'aria-hidden': 'true' }))),
-                                      ),
-                                  ),
-                              ),
-                          ),
-                      ),
-                      React.createElement(TablePagination, {
-                          component: 'div',
-                          count: discounts.length,
-                          page,
-                          onPageChange: handleChangePage,
-                          rowsPerPage,
-                          onRowsPerPageChange: handleChangeRowsPerPage,
-                          rowsPerPageOptions: [5, 10, 25, 50],
-                          labelRowsPerPage: 'Baris per halaman',
-                          labelDisplayedRows: ({ from, to, count }) => `${from}-${to} dari ${count}`,
+                      Paper,
+                      { sx: { height: 'auto', width: '100%', boxShadow: 'none', borderRadius: 0 } },
+                      React.createElement(DataGrid, {
+                          rows: filteredDiscounts,
+                          columns,
+                          autoHeight: true,
+                          className: 'discount-data-grid',
+                          getRowId: (row) => row.id,
+                          rowHeight: 48,
+                          columnHeaderHeight: 56,
+                          paginationModel,
+                          onPaginationModelChange: setPaginationModel,
+                          pageSizeOptions: [5, 10, 25, 50],
+                          disableRowSelectionOnClick: true,
                           sx: {
+                              border: 0,
                               fontFamily: 'inherit',
-                              '& .MuiTablePagination-toolbar, & .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows, & .MuiTablePagination-select, & .MuiTablePagination-actions': {
-                                  fontFamily: 'inherit',
-                              },
+                              '& .MuiDataGrid-columnHeaders': { backgroundColor: '#f5f5f5' },
+                              '& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus': { outline: 'none' },
+                              '& .MuiDataGrid-cellContent': { fontFamily: 'inherit' },
                           },
                       }),
                   ),

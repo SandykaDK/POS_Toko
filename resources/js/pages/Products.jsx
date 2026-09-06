@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { money } from '../helpers.js';
-import { ArrowPathIcon, ArrowUturnLeftIcon, ExclamationTriangleIcon, PencilSquareIcon, PlusIcon, TrashIcon, XMarkIcon } from '@heroicons/react/24/outline';
-import TablePagination from '@mui/material/TablePagination';
+import { ArrowPathIcon, ExclamationTriangleIcon, PencilSquareIcon, PlusIcon, TrashIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import Paper from '@mui/material/Paper';
+import { DataGrid } from '@mui/x-data-grid';
 import { fetchList, fetchTrashed, createItem, updateItem, deleteItem, restoreItem, forceDeleteItem } from '../api.js';
 import { AlertPopup } from '../components/AlertPopup.jsx';
 
@@ -9,10 +10,10 @@ export function Products() {
     const [products, setProducts] = useState([]);
     const [categories, setCategories] = useState([]);
     const [view, setView] = useState('active');
-    const [page, setPage] = useState(0);
-    const [rowsPerPage, setRowsPerPage] = useState(10);
+    const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 10 });
     const [statusFilter, setStatusFilter] = useState('');
     const [categoryFilter, setCategoryFilter] = useState('');
+    const [productSearch, setProductSearch] = useState('');
     const [loading, setLoading] = useState(true);
     const [showForm, setShowForm] = useState(false);
     const [editingId, setEditingId] = useState(null);
@@ -33,7 +34,7 @@ export function Products() {
     });
 
     useEffect(() => {
-        setPage(0);
+        setPaginationModel((current) => ({ ...current, page: 0 }));
         loadData();
     }, [view, statusFilter, categoryFilter]);
 
@@ -64,11 +65,6 @@ export function Products() {
         } finally {
             setLoading(false);
         }
-    };
-
-    const resetFilters = () => {
-        setStatusFilter('');
-        setCategoryFilter('');
     };
 
     const generateProductCode = (categoryId) => {
@@ -158,21 +154,81 @@ export function Products() {
         if (action) await action();
     };
 
-    const handleChangePage = (event, nextPage) => {
-        setPage(nextPage);
-    };
+    const filteredProducts = products.filter((product) => {
+        const searchTerm = productSearch.trim().toLowerCase();
 
-    const handleChangeRowsPerPage = (event) => {
-        setRowsPerPage(Number.parseInt(event.target.value, 10));
-        setPage(0);
-    };
-
-    const paginatedProducts = products.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+        return !searchTerm
+            || product.name.toLowerCase().includes(searchTerm)
+            || product.product_code.toLowerCase().includes(searchTerm);
+    });
 
     const getCategoryName = (categoryId) => {
         const category = categories.find((c) => c.id === categoryId);
         return category ? category.name : '-';
     };
+
+    const columns = [
+        { field: 'product_code', headerName: 'Kode Produk', minWidth: 135, flex: 1 },
+        { field: 'name', headerName: 'Nama', minWidth: 200, flex: 1.5 },
+        {
+            field: 'category_id',
+            headerName: 'Kategori',
+            minWidth: 140,
+            flex: 1,
+            valueGetter: (_value, row) => getCategoryName(row.category_id),
+        },
+        {
+            field: 'cost_price',
+            headerName: 'Harga Beli',
+            minWidth: 125,
+            flex: 1,
+            type: 'number',
+            valueGetter: (_value, row) => Number(row.cost_price),
+            renderCell: (params) => money(params.value),
+        },
+        {
+            field: 'selling_price',
+            headerName: 'Harga Jual',
+            minWidth: 125,
+            flex: 1,
+            type: 'number',
+            valueGetter: (_value, row) => Number(row.selling_price),
+            renderCell: (params) => money(params.value),
+        },
+        {
+            field: 'stock',
+            headerName: 'Stok',
+            minWidth: 100,
+            flex: 0.8,
+            type: 'number',
+            valueGetter: (_value, row) => Number(row.stock),
+            renderCell: (params) => `${params.value} ${params.row.unit}`,
+        },
+        {
+            field: 'is_active',
+            headerName: 'Status',
+            minWidth: 110,
+            flex: 0.8,
+            valueGetter: (_value, row) => view === 'trashed' ? 'Terhapus' : (row.is_active ? 'Aktif' : 'Nonaktif'),
+            renderCell: (params) => React.createElement('span', { className: `category-status product-status-badge ${view === 'trashed' ? 'deleted' : (params.row.is_active ? 'active' : 'inactive')}` }, params.value),
+        },
+        {
+            field: 'actions',
+            headerName: 'Aksi',
+            minWidth: 125,
+            sortable: false,
+            filterable: false,
+            renderCell: (params) => React.createElement('div', { className: 'action-buttons' }, view === 'trashed'
+                ? React.createElement(React.Fragment, null,
+                      React.createElement('button', { className: 'btn-edit', type: 'button', title: 'Pulihkan produk', 'aria-label': 'Pulihkan produk', onClick: () => handleRestore(params.row.id) }, React.createElement(ArrowPathIcon, { 'aria-hidden': 'true' })),
+                      React.createElement('button', { className: 'btn-delete', type: 'button', title: 'Hapus permanen', 'aria-label': 'Hapus permanen', onClick: () => handleForceDelete(params.row.id) }, React.createElement(TrashIcon, { 'aria-hidden': 'true' })),
+                  )
+                : React.createElement(React.Fragment, null,
+                      React.createElement('button', { className: 'btn-edit', type: 'button', title: 'Edit produk', 'aria-label': 'Edit produk', onClick: () => handleEdit(params.row) }, React.createElement(PencilSquareIcon, { 'aria-hidden': 'true' })),
+                      React.createElement('button', { className: 'btn-delete', type: 'button', title: 'Hapus produk', 'aria-label': 'Hapus produk', onClick: () => handleDelete(params.row.id) }, React.createElement(TrashIcon, { 'aria-hidden': 'true' })),
+                  )),
+        },
+    ];
 
     return React.createElement(
         React.Fragment,
@@ -346,90 +402,58 @@ export function Products() {
             React.createElement(
                 'div',
                 { className: 'category-toolbar' },
+                React.createElement(
+                    'label',
+                    { className: 'category-filter product-search-filter' },
+                    React.createElement('span', null, 'Cari Produk'),
+                    React.createElement('input', {
+                        className: 'search-box',
+                        type: 'search',
+                        value: productSearch,
+                        onChange: (event) => {
+                            setProductSearch(event.target.value);
+                            setPaginationModel((current) => ({ ...current, page: 0 }));
+                        },
+                        placeholder: 'Nama atau kode produk',
+                    }),
+                ),
                 React.createElement('label', { className: 'category-filter' }, React.createElement('span', null, 'Kategori'), React.createElement('select', { value: categoryFilter, onChange: (event) => setCategoryFilter(event.target.value) }, React.createElement('option', { value: '' }, 'Semua Kategori'), categories.map((category) => React.createElement('option', { key: category.id, value: category.id }, category.name)))),
                 React.createElement('label', { className: 'category-filter' }, React.createElement('span', null, 'Status'), React.createElement('select', { value: statusFilter, onChange: (event) => setStatusFilter(event.target.value), disabled: view === 'trashed' }, React.createElement('option', { value: '' }, 'Semua Status'), React.createElement('option', { value: '1' }, 'Aktif'), React.createElement('option', { value: '0' }, 'Nonaktif'))),
-                React.createElement('button', { className: 'filter-reset', type: 'button', onClick: resetFilters }, React.createElement(ArrowUturnLeftIcon, { 'aria-hidden': 'true' }), 'Reset'),
                 React.createElement('button', { className: 'category-add-button', type: 'button', onClick: () => { resetProductForm(); setShowForm(true); } }, React.createElement(PlusIcon, { 'aria-hidden': 'true' }), 'Tambah'),
             ),
             React.createElement(
                 'div',
                 { className: 'category-tabs' },
-                React.createElement('button', { className: `pill ${view === 'active' ? 'primary' : 'secondary'}`, onClick: () => setView('active') }, 'Aktif'),
+                React.createElement('button', { className: `pill ${view === 'active' ? 'primary' : 'secondary'}`, onClick: () => setView('active') }, 'Semua Data'),
                 React.createElement('button', { className: `pill ${view === 'trashed' ? 'primary' : 'secondary'}`, onClick: () => setView('trashed') }, 'Terhapus'),
             ),
             loading
                 ? React.createElement('div', { className: 'empty-state' }, 'Memuat data...')
                 : React.createElement(
-                      'div',
-                      { className: 'table-container' },
-                      React.createElement(
-                          'table',
-                          { className: 'data-table category-data-table' },
-                          React.createElement(
-                              'thead',
-                              null,
-                              React.createElement(
-                                  'tr',
-                                  null,
-                                  React.createElement('th', null, 'Kode Produk'),
-                                  React.createElement('th', null, 'Nama'),
-                                  React.createElement('th', null, 'Kategori'),
-                                  React.createElement('th', null, 'Harga Beli'),
-                                  React.createElement('th', null, 'Harga Jual'),
-                                  React.createElement('th', null, 'Stok'),
-                                  React.createElement('th', null, 'Status'),
-                                  React.createElement('th', null, 'Aksi'),
-                              ),
-                          ),
-                          React.createElement(
-                              'tbody',
-                              null,
-                              paginatedProducts.map((product) =>
-                                  React.createElement(
-                                      'tr',
-                                      { key: product.id },
-                                      React.createElement('td', null, product.product_code),
-                                      React.createElement('td', null, product.name),
-                                      React.createElement('td', null, getCategoryName(product.category_id)),
-                                      React.createElement('td', null, money(product.cost_price)),
-                                      React.createElement('td', null, money(product.selling_price)),
-                                      React.createElement('td', null, `${product.stock} ${product.unit}`),
-                                      React.createElement('td', null, React.createElement('span', { className: `category-status ${view === 'trashed' ? 'deleted' : (product.is_active ? 'active' : 'inactive')}` }, view === 'trashed' ? 'Terhapus' : (product.is_active ? 'Aktif' : 'Nonaktif'))),
-                                      React.createElement(
-                                          'td',
-                                          { className: 'action-buttons' },
-                                          view === 'trashed'
-                                              ? React.createElement(React.Fragment, null,
-                                                    React.createElement('button', { className: 'btn-edit', type: 'button', title: 'Pulihkan produk', 'aria-label': 'Pulihkan produk', onClick: () => handleRestore(product.id) }, React.createElement(ArrowPathIcon, { 'aria-hidden': 'true' })),
-                                                    React.createElement('button', { className: 'btn-delete', type: 'button', title: 'Hapus permanen', 'aria-label': 'Hapus permanen', onClick: () => handleForceDelete(product.id) }, React.createElement(TrashIcon, { 'aria-hidden': 'true' })),
-                                                )
-                                              : React.createElement(React.Fragment, null,
-                                                    React.createElement('button', { className: 'btn-edit', type: 'button', title: 'Edit produk', 'aria-label': 'Edit produk', onClick: () => handleEdit(product) }, React.createElement(PencilSquareIcon, { 'aria-hidden': 'true' })),
-                                                    React.createElement('button', { className: 'btn-delete', type: 'button', title: 'Hapus produk', 'aria-label': 'Hapus produk', onClick: () => handleDelete(product.id) }, React.createElement(TrashIcon, { 'aria-hidden': 'true' })),
-                                                ),
-                                      ),
-                                  ),
-                              ),
-                          ),
-                      ),
-                      React.createElement(TablePagination, {
-                          component: 'div',
-                          count: products.length,
-                          page,
-                          onPageChange: handleChangePage,
-                          rowsPerPage,
-                          onRowsPerPageChange: handleChangeRowsPerPage,
-                          rowsPerPageOptions: [5, 10, 25, 50],
-                          labelRowsPerPage: 'Baris per halaman',
-                          labelDisplayedRows: ({ from, to, count }) => `${from}-${to} dari ${count}`,
-                          sx: {
-                              fontFamily: 'inherit',
-                              '& .MuiTablePagination-toolbar, & .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows, & .MuiTablePagination-select, & .MuiTablePagination-actions': {
-                                  fontFamily: 'inherit',
-                              },
-                          },
-                      }),
-                  ),
+                    Paper,
+                    { sx: { height: 'auto', width: '100%', boxShadow: 'none', borderRadius: 0 } },
+                    React.createElement(DataGrid, {
+                        rows: filteredProducts,
+                        columns,
+                        autoHeight: true,
+                        className: 'product-data-grid',
+                        getRowId: (row) => row.id,
+                        rowHeight: 48,
+                        columnHeaderHeight: 56,
+                        paginationModel,
+                        onPaginationModelChange: setPaginationModel,
+                        pageSizeOptions: [5, 10, 25, 50],
+                        disableRowSelectionOnClick: true,
+                        disableColumnMenu: false,
+                        sx: {
+                            border: 0,
+                            fontFamily: 'inherit',
+                            '& .MuiDataGrid-columnHeaders': { backgroundColor: '#f5f5f5' },
+                            '& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus': { outline: 'none' },
+                            '& .MuiDataGrid-cellContent': { fontFamily: 'inherit' },
+                        },
+                    }),
+                ),
         ),
         confirmDialog ? React.createElement('div', { className: 'confirm-overlay', role: 'presentation', onMouseDown: (event) => { if (event.target === event.currentTarget) setConfirmDialog(null); } }, React.createElement('div', { className: 'confirm-dialog', role: 'alertdialog', 'aria-modal': 'true', 'aria-labelledby': 'confirm-title', 'aria-describedby': 'confirm-message' }, React.createElement('div', { className: `confirm-icon ${confirmDialog.tone}` }, React.createElement(ExclamationTriangleIcon, { 'aria-hidden': 'true' })), React.createElement('div', { className: 'confirm-content' }, React.createElement('h2', { id: 'confirm-title' }, confirmDialog.title), React.createElement('p', { id: 'confirm-message' }, confirmDialog.message)), React.createElement('button', { className: 'confirm-close', type: 'button', onClick: () => setConfirmDialog(null), 'aria-label': 'Tutup dialog' }, React.createElement(XMarkIcon, { 'aria-hidden': 'true' })), React.createElement('div', { className: 'confirm-actions' }, React.createElement('button', { className: 'confirm-cancel', type: 'button', onClick: () => setConfirmDialog(null) }, 'Batal'), React.createElement('button', { className: `confirm-submit ${confirmDialog.tone}`, type: 'button', onClick: handleConfirm }, confirmDialog.confirmLabel)))) : null,
         message.text ? React.createElement(AlertPopup, { message, onClose: () => setMessage({ type: '', text: '' }) }) : null,

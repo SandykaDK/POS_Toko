@@ -11,7 +11,7 @@ use App\Http\Controllers\AuthController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('web')->group(function () {
-    Route::post('auth/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
+    Route::post('auth/login', [AuthController::class, 'login'])->middleware('throttle:50,1');
 
     Route::get('/health', function () {
         return response()->json([

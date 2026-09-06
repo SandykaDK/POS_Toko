@@ -162,6 +162,11 @@
     opacity: 0.6;
 }
 
+.product-search-filter .search-box {
+    width: 300px;
+    min-height: 40px;
+}
+
 .filter-reset {
     display: inline-flex;
     align-items: center;
@@ -255,6 +260,56 @@
     height: 18px;
 }
 
+.product-data-grid .MuiDataGrid-cell,
+.category-data-grid .MuiDataGrid-cell,
+.customer-data-grid .MuiDataGrid-cell,
+.discount-data-grid .MuiDataGrid-cell {
+    display: flex;
+    align-items: center;
+}
+
+.product-data-grid .product-status-badge,
+.category-data-grid .category-status,
+.customer-data-grid .category-status,
+.discount-data-grid .category-status {
+    min-width: 72px;
+    height: 30px;
+    justify-content: center;
+    padding: 0 10px;
+    white-space: nowrap;
+    line-height: 1;
+}
+
+.product-data-grid .action-buttons,
+.category-data-grid .action-buttons,
+.customer-data-grid .action-buttons,
+.discount-data-grid .action-buttons {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.product-data-grid .action-buttons button,
+.category-data-grid .action-buttons button,
+.customer-data-grid .action-buttons button,
+.discount-data-grid .action-buttons button {
+    display: inline-grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    border-radius: 8px;
+    line-height: 0;
+}
+
+.product-data-grid .action-buttons svg,
+.category-data-grid .action-buttons svg,
+.customer-data-grid .action-buttons svg,
+.discount-data-grid .action-buttons svg {
+    width: 18px;
+    height: 18px;
+}
+
 @media (max-width: 768px) {
     .category-toolbar {
         align-items: stretch;
@@ -262,7 +317,8 @@
     }
 
     .category-filter,
-    .category-filter select {
+    .category-filter select,
+    .product-search-filter .search-box {
         width: 100%;
     }
 

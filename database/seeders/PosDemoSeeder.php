@@ -24,7 +24,16 @@ class PosDemoSeeder extends Seeder
             ]
         );
 
-        $categoryNames = ['Makanan', 'Minuman', 'Alat Tulis', 'Bumbu', 'Sembako', 'Obat', 'Kebersihan Rumah', 'Perawatan Pribadi'];
+        $categoryNames = [
+            'Makanan',
+            'Minuman',
+            'Alat Tulis',
+            'Bumbu',
+            'Sembako',
+            'Obat',
+            'Kebersihan Rumah',
+            'Perawatan Pribadi',
+            'Tes Kategori'];
         $categoryCodes = [
             'Makanan' => 'MKN',
             'Minuman' => 'MIN',
@@ -34,6 +43,7 @@ class PosDemoSeeder extends Seeder
             'Obat' => 'OBT',
             'Kebersihan Rumah' => 'KBR',
             'Perawatan Pribadi' => 'PRB',
+            'Tes Kategori' => 'TES'
         ];
         $categoryMap = [];
 
@@ -44,7 +54,7 @@ class PosDemoSeeder extends Seeder
                     'name' => $name,
                     'category_code' => $categoryCodes[$name],
                     'description' => 'Kategori ' . $name,
-                    'is_active' => true,
+                    'is_active' => $name !== 'Tes Kategori',
                 ]
             );
 
@@ -147,20 +157,32 @@ class PosDemoSeeder extends Seeder
             ['name' => 'Teh Pucuk Harum Original 350ml', 'category' => 'Minuman', 'selling_price' => 0],
         ];
 
-        foreach ($catalogProducts as $index => $product) {
+        $categoryProductSequences = [];
+
+        foreach ($catalogProducts as $product) {
+            $categoryName = $product['category'] ?? 'Sembako';
+            $categoryProductSequences[$categoryName] = ($categoryProductSequences[$categoryName] ?? 0) + 1;
+            $productCode = sprintf(
+                '%s-%03d',
+                $categoryCodes[$categoryName],
+                $categoryProductSequences[$categoryName]
+            );
+            $costPrice = $product['cost_price'] ?? 0;
+
             Product::updateOrCreate(
-                ['product_code' => sprintf('KAT-%03d', $index + 1)],
+                ['name' => $product['name']],
                 [
-                    'category_id' => $categoryMap[$product['category'] ?? 'Sembako'],
+                    'category_id' => $categoryMap[$categoryName],
+                    'product_code' => $productCode,
                     'name' => $product['name'],
-                    'cost_price' => 0,
+                    'cost_price' => $costPrice,
                     'selling_price' => $product['selling_price'],
                     'description' => null,
                     'min_stock' => 5,
                     'stock' => 10,
                     'unit' => 'pcs',
                     'image' => null,
-                    'is_active' => true,
+                    'is_active' => $costPrice > 0 || $product['selling_price'] > 0,
                 ]
             );
         }
