@@ -3,6 +3,8 @@ import { money } from '../helpers.js';
 import { apiFetch, fetchList } from '../api.js';
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import { AlertPopup } from '../components/AlertPopup.jsx';
+import Tabs from '@mui/material/Tabs';
+import Tab from '@mui/material/Tab';
 
 const getLocalDateTime = () => {
     const date = new Date();
@@ -180,27 +182,26 @@ export function Cashier() {
                 React.createElement(
                     'div',
                     { className: 'catalog-body' },
-                    React.createElement(
-                        'div',
-                        { className: 'category-list' },
                         React.createElement(
-                            'button',
-                            { className: `category-chip ${selectedCategory === 'all' ? 'active' : ''}`, type: 'button', onClick: () => setSelectedCategory('all') },
-                            'Semua',
-                        ),
-                        categories.map((category) =>
-                            React.createElement(
-                                'button',
-                                {
+                            Tabs,
+                            {
+                                value: selectedCategory,
+                                onChange: (_event, value) => setSelectedCategory(value),
+                                variant: 'scrollable',
+                                scrollButtons: 'auto',
+                                allowScrollButtonsMobile: true,
+                                'aria-label': 'Filter kategori produk',
+                                className: 'category-list',
+                            },
+                            React.createElement(Tab, { value: 'all', label: 'Semua' }),
+                            categories.map((category) =>
+                                React.createElement(Tab, {
                                     key: category.id,
-                                    className: `category-chip ${selectedCategory === String(category.id) ? 'active' : ''}`,
-                                    type: 'button',
-                                    onClick: () => setSelectedCategory(String(category.id)),
-                                },
-                                category.name,
+                                    value: String(category.id),
+                                    label: category.name,
+                                }),
                             ),
                         ),
-                    ),
                     loading
                         ? React.createElement('div', { className: 'empty-state' }, 'Memuat produk...')
                         : React.createElement(

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { fetchCurrentUser } from './api.js';
+import { fetchCurrentUser, hasToken } from './api.js';
 import { Login } from './pages/Login.jsx';
 import { Layout } from './pages/Layout.jsx';
 import { Dashboard } from './pages/Dashboard.jsx';
@@ -38,6 +38,11 @@ function App() {
     const [checkingAuth, setCheckingAuth] = useState(true);
 
     useEffect(() => {
+        if (!hasToken()) {
+            setCheckingAuth(false);
+            return;
+        }
+
         fetchCurrentUser()
             .then((response) => setUser(response.user))
             .catch(() => setUser(null))

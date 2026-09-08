@@ -162,6 +162,36 @@
     opacity: 0.6;
 }
 
+.category-filter .MuiFormControl-root,
+.category-filter .MuiInputBase-root,
+.category-filter .MuiSelect-select,
+.category-filter .MuiInputBase-input {
+    font-family: inherit !important;
+    font-size: 14px !important;
+    font-weight: 400 !important;
+    line-height: 1.4 !important;
+}
+
+.category-filter .MuiSelect-select {
+    min-height: 1.25rem;
+    padding: 10px 36px 10px 14px;
+    color: #182b46;
+}
+
+.category-filter .MuiOutlinedInput-notchedOutline {
+    border-color: #dce3ec;
+    border-radius: 7px;
+}
+
+.category-filter .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline,
+.category-filter .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline {
+    border-color: #1677ff;
+}
+
+.category-filter .MuiOutlinedInput-root.Mui-focused {
+    box-shadow: 0 0 0 3px rgba(22, 119, 255, 0.12);
+}
+
 .product-search-filter .search-box {
     width: 300px;
     min-height: 40px;

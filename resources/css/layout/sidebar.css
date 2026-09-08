@@ -252,25 +252,23 @@ body {
 }
 
 .category-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.55rem;
+    width: 100%;
     margin-bottom: 1rem;
 }
 
-.category-chip {
-    border: 1px solid var(--line);
-    background: #fff;
-    border-radius: 999px;
-    padding: 0.55rem 0.8rem;
-    cursor: pointer;
-    font-weight: 600;
+.category-list .MuiTabs-flexContainer {
+    flex-wrap: nowrap;
 }
 
-.category-chip.active {
-    background: var(--bg-soft);
-    color: var(--primary);
-    border-color: rgba(37, 99, 235, 0.18);
+.category-list .MuiTab-root {
+    min-width: max-content;
+    min-height: 44px;
+    padding: 0.55rem 1rem;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 0.95rem;
+    font-weight: 600;
+    text-transform: none;
 }
 
 .product-grid {

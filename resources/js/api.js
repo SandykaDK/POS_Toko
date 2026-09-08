@@ -1,17 +1,19 @@
 const API_URL = '/api';
+const TOKEN_KEY = 'tokopos_token';
 
-function csrfToken() {
-    return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+export function hasToken() {
+    return Boolean(localStorage.getItem(TOKEN_KEY));
 }
 
 export async function apiFetch(endpoint, options = {}) {
     const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
+    const token = localStorage.getItem(TOKEN_KEY);
 
     const response = await fetch(`${API_URL}${endpoint}`, {
         headers: {
             ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
             Accept: 'application/json',
-            'X-CSRF-TOKEN': csrfToken() || '',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
             ...(options.headers || {}),
         },
         ...options,
@@ -24,6 +26,10 @@ export async function apiFetch(endpoint, options = {}) {
     }
 
     if (!response.ok) {
+        if (response.status === 401) {
+            localStorage.removeItem(TOKEN_KEY);
+        }
+
         const error = new Error(payload.message || 'Request failed');
         error.status = response.status;
         error.errors = payload.errors || {};
@@ -37,6 +43,12 @@ export function login(credentials) {
     return apiFetch('/auth/login', {
         method: 'POST',
         body: JSON.stringify(credentials),
+    }).then((response) => {
+        if (response.token) {
+            localStorage.setItem(TOKEN_KEY, response.token);
+        }
+
+        return response;
     });
 }
 
@@ -45,7 +57,9 @@ export function fetchCurrentUser() {
 }
 
 export function logout() {
-    return apiFetch('/auth/logout', { method: 'POST' });
+    return apiFetch('/auth/logout', { method: 'POST' }).finally(() => {
+        localStorage.removeItem(TOKEN_KEY);
+    });
 }
 
 export async function fetchList(resource, page = 1, perPage = 20, params = {}) {

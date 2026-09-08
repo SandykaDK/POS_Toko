@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { ArrowPathIcon, ExclamationTriangleIcon, PencilSquareIcon, PlusIcon, TrashIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import Paper from '@mui/material/Paper';
+import FormControl from '@mui/material/FormControl';
+import MenuItem from '@mui/material/MenuItem';
+import Select from '@mui/material/Select';
 import { DataGrid } from '@mui/x-data-grid';
 import { fetchList, fetchTrashed, createItem, updateItem, deleteItem, restoreItem, forceDeleteItem } from '../api.js';
 import { AlertPopup } from '../components/AlertPopup.jsx';
@@ -127,6 +130,7 @@ export function Customers() {
         { field: 'name', headerName: 'Nama', minWidth: 200, flex: 1.4 },
         { field: 'email', headerName: 'Email', minWidth: 220, flex: 1.4 },
         { field: 'phone', headerName: 'Telepon', minWidth: 150, flex: 1 },
+        { field: 'address', headerName: 'Alamat', minWidth: 220, flex: 1.5 },
         {
             field: 'status',
             headerName: 'Status',
@@ -244,7 +248,28 @@ export function Customers() {
             { className: 'panel category-panel' },
             React.createElement('div', { className: 'category-toolbar' },
                 React.createElement('label', { className: 'category-filter product-search-filter' }, React.createElement('span', null, 'Cari Pelanggan'), React.createElement('input', { className: 'search-box', type: 'search', value: customerSearch, onChange: (event) => { setCustomerSearch(event.target.value); setPaginationModel((current) => ({ ...current, page: 0 })); }, placeholder: 'Nama, email, atau telepon' })),
-                React.createElement('label', { className: 'category-filter' }, React.createElement('span', null, 'Status'), React.createElement('select', { value: statusFilter, onChange: (event) => setStatusFilter(event.target.value), disabled: view === 'trashed' }, React.createElement('option', { value: '' }, 'Semua Status'), React.createElement('option', { value: 'active' }, 'Aktif'), React.createElement('option', { value: 'inactive' }, 'Nonaktif'), React.createElement('option', { value: 'vip' }, 'VIP'))),
+                React.createElement(
+                    'label',
+                    { className: 'category-filter' },
+                    React.createElement('span', null, 'Status'),
+                    React.createElement(
+                        FormControl,
+                        { size: 'small', fullWidth: true, disabled: view === 'trashed' },
+                        React.createElement(
+                            Select,
+                            {
+                                value: statusFilter,
+                                onChange: (event) => setStatusFilter(event.target.value),
+                                displayEmpty: true,
+                                inputProps: { 'aria-label': 'Filter status pelanggan' },
+                            },
+                            React.createElement(MenuItem, { value: '' }, 'Semua Status'),
+                            React.createElement(MenuItem, { value: 'active' }, 'Aktif'),
+                            React.createElement(MenuItem, { value: 'inactive' }, 'Nonaktif'),
+                            React.createElement(MenuItem, { value: 'vip' }, 'VIP'),
+                        ),
+                    ),
+                ),
                 React.createElement('button', { className: 'category-add-button', type: 'button', onClick: () => { resetCustomerForm(); setShowForm(true); } }, React.createElement(PlusIcon, { 'aria-hidden': 'true' }), 'Tambah'),
             ),
             React.createElement('div', { className: 'category-tabs' }, React.createElement('button', { className: `pill ${view === 'active' ? 'primary' : 'secondary'}`, onClick: () => setView('active') }, 'Semua Data'), React.createElement('button', { className: `pill ${view === 'trashed' ? 'primary' : 'secondary'}`, onClick: () => setView('trashed') }, 'Terhapus')),

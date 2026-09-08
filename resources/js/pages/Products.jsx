@@ -2,6 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { money } from '../helpers.js';
 import { ArrowPathIcon, ExclamationTriangleIcon, PencilSquareIcon, PlusIcon, TrashIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import Paper from '@mui/material/Paper';
+import FormControl from '@mui/material/FormControl';
+import MenuItem from '@mui/material/MenuItem';
+import Select from '@mui/material/Select';
 import { DataGrid } from '@mui/x-data-grid';
 import { fetchList, fetchTrashed, createItem, updateItem, deleteItem, restoreItem, forceDeleteItem } from '../api.js';
 import { AlertPopup } from '../components/AlertPopup.jsx';
@@ -417,8 +420,53 @@ export function Products() {
                         placeholder: 'Nama atau kode produk',
                     }),
                 ),
-                React.createElement('label', { className: 'category-filter' }, React.createElement('span', null, 'Kategori'), React.createElement('select', { value: categoryFilter, onChange: (event) => setCategoryFilter(event.target.value) }, React.createElement('option', { value: '' }, 'Semua Kategori'), categories.map((category) => React.createElement('option', { key: category.id, value: category.id }, category.name)))),
-                React.createElement('label', { className: 'category-filter' }, React.createElement('span', null, 'Status'), React.createElement('select', { value: statusFilter, onChange: (event) => setStatusFilter(event.target.value), disabled: view === 'trashed' }, React.createElement('option', { value: '' }, 'Semua Status'), React.createElement('option', { value: '1' }, 'Aktif'), React.createElement('option', { value: '0' }, 'Nonaktif'))),
+                React.createElement(
+                    'label',
+                    { className: 'category-filter' },
+                    React.createElement('span', null, 'Kategori'),
+                    React.createElement(
+                        FormControl,
+                        { size: 'small', fullWidth: true },
+                        React.createElement(
+                            Select,
+                            {
+                                value: categoryFilter,
+                                onChange: (event) => setCategoryFilter(event.target.value),
+                                displayEmpty: true,
+                                inputProps: { 'aria-label': 'Filter kategori' },
+                                sx: {
+                                    fontFamily: 'inherit',
+                                    fontSize: '14px',
+                                    fontWeight: 400,
+                                    lineHeight: 1.4,
+                                },
+                            },
+                            React.createElement(MenuItem, { value: '', sx: { fontFamily: 'inherit', fontSize: '14px', fontWeight: 400 } }, 'Semua Kategori'),
+                            categories.map((category) => React.createElement(MenuItem, { key: category.id, value: String(category.id), sx: { fontFamily: 'inherit', fontSize: '14px', fontWeight: 400 } }, category.name)),
+                        ),
+                    ),
+                ),
+                React.createElement(
+                    'label',
+                    { className: 'category-filter' },
+                    React.createElement('span', null, 'Status'),
+                    React.createElement(
+                        FormControl,
+                        { size: 'small', fullWidth: true, disabled: view === 'trashed' },
+                        React.createElement(
+                            Select,
+                            {
+                                value: statusFilter,
+                                onChange: (event) => setStatusFilter(event.target.value),
+                                displayEmpty: true,
+                                inputProps: { 'aria-label': 'Filter status produk' },
+                            },
+                            React.createElement(MenuItem, { value: '' }, 'Semua Status'),
+                            React.createElement(MenuItem, { value: '1' }, 'Aktif'),
+                            React.createElement(MenuItem, { value: '0' }, 'Nonaktif'),
+                        ),
+                    ),
+                ),
                 React.createElement('button', { className: 'category-add-button', type: 'button', onClick: () => { resetProductForm(); setShowForm(true); } }, React.createElement(PlusIcon, { 'aria-hidden': 'true' }), 'Tambah'),
             ),
             React.createElement(
