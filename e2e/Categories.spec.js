@@ -35,15 +35,18 @@ test.beforeEach(async ({ page }) => {
 
 test('Check Filter Status', async ({ page }) =>{
     const statusFilter = page.getByRole('combobox', { name: 'Status' });
+    const statusOptions = page.getByRole('listbox').getByRole('option');
     const rowKategori = page.locator('.MuiDataGrid-row');
 
     await expect(statusFilter).toBeVisible();
-    await expect(statusFilter).toHaveValue('');
-    await expect(statusFilter.locator('option')).toHaveText(['Semua Status', 'Aktif', 'Nonaktif']);
+    await expect(statusFilter).toHaveText('Semua Status');
+    await statusFilter.click();
+    await expect(statusOptions).toHaveText(['Semua Status', 'Aktif', 'Nonaktif']);
 
     // Check Status Aktif
-    await statusFilter.selectOption('1');
-    await expect(statusFilter).toHaveValue('1');
+    await statusOptions.getByText('Aktif', { exact: true }).click();
+    await expect(statusFilter).toHaveText('Aktif');
+
     await expect(rowKategori).not.toHaveCount(0);
     await expect.poll(async () => {
         const statuses = await rowKategori.locator('.category-status').allTextContents();
@@ -51,15 +54,13 @@ test('Check Filter Status', async ({ page }) =>{
     }).toBe(true);
 
     // Check Status Nonaktif
-    await statusFilter.selectOption('0');
-    await expect(statusFilter).toHaveValue('0');
-    await expect.poll(async () => {
-    const statuses = await rowKategori
-        .locator('.category-status')
-        .allTextContents();
+    await statusFilter.click();
+    await page.getByRole('listbox').getByRole('option', { name: 'Nonaktif' }).click();
+    await expect(statusFilter).toHaveText('Nonaktif');
 
-    return statuses.length > 0
-        && statuses.every((status) => status.trim() === 'Nonaktif');
+    await expect.poll(async () => {
+        const statuses = await rowKategori.locator('.category-status').allTextContents();
+        return statuses.every((status) => status.trim() === 'Aktif');
     }).toBe(true);
 });
 
