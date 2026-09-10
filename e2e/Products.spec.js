@@ -73,3 +73,33 @@ test('Check Filter Status', async ({ page }) =>{
         && statuses.every((status) => status.trim() === 'Nonaktif');
     }).toBe(true);
 });
+
+test('Open Header Column', async ({ page }) =>{
+    const sortableColumns = ['Kode Produk', 'Nama', 'Kategori', 'Harga Beli', 'Harga Jual', 'Stok', 'Status'];
+    const aksiHeader = page.getByRole('columnheader', { name: 'Aksi' })
+    const activeMenu = page.locator('[role="menu"]:visible');
+
+    for (const columnName of sortableColumns) {
+        const columnHeader = page.getByRole('columnheader', { name: columnName });
+
+        await columnHeader.hover();
+        await columnHeader.getByRole('button', { name: `${columnName} column menu` }).click();
+
+        await expect(activeMenu).toHaveCount(1);
+
+        await expect(activeMenu.getByText('Sort by ASC', { exact: true })).toBeVisible();
+        await expect(activeMenu.getByText('Sort by DESC', { exact: true })).toBeVisible();
+        await expect(activeMenu.getByText('Filter', { exact: true })).toBeVisible();
+        await expect(activeMenu.getByText('Hide column', { exact: true })).toBeVisible();
+        await expect(activeMenu.getByText('Manage columns', { exact: true })).toBeVisible();
+
+        await page.getByRole('heading', { name: 'Data Produk' }).click();
+    }
+
+    await aksiHeader.hover();
+    await aksiHeader.getByRole('button', { name: 'Aksi column menu' }).click();
+
+    await expect(activeMenu.getByText('Sort by ASC', { exact: true })).not.toBeVisible();
+    await expect(activeMenu.getByText('Sort by DESC', { exact: true })).not.toBeVisible();
+    await expect(activeMenu.getByText('Filter', { exact: true })).not.toBeVisible();
+});

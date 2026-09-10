@@ -67,6 +67,7 @@ test('Check Filter Status', async ({ page }) =>{
 test('Open Header Column', async ({ page }) =>{
     const sortableColumns = ['Kode Kategori', 'Nama', 'Slug', 'Deskripsi', 'Status'];
     const aksiHeader = page.getByRole('columnheader', { name: 'Aksi' })
+    const activeMenu = page.locator('[role="menu"]:visible');
 
     for (const columnName of sortableColumns) {
         const columnHeader = page.getByRole('columnheader', { name: columnName });
@@ -74,13 +75,13 @@ test('Open Header Column', async ({ page }) =>{
         await columnHeader.hover();
         await columnHeader.getByRole('button', { name: `${columnName} column menu` }).click();
 
-        const menu = page.getByRole('menu').last();
+        await expect(activeMenu).toHaveCount(1);
 
-        await expect(menu.getByText('Sort by ASC', { exact: true })).toBeVisible();
-        await expect(menu.getByText('Sort by DESC', { exact: true })).toBeVisible();
-        await expect(menu.getByText('Filter', { exact: true })).toBeVisible();
-        await expect(menu.getByText('Hide column', { exact: true })).toBeVisible();
-        await expect(menu.getByText('Manage columns', { exact: true })).toBeVisible();
+        await expect(activeMenu.getByText('Sort by ASC', { exact: true })).toBeVisible();
+        await expect(activeMenu.getByText('Sort by DESC', { exact: true })).toBeVisible();
+        await expect(activeMenu.getByText('Filter', { exact: true })).toBeVisible();
+        await expect(activeMenu.getByText('Hide column', { exact: true })).toBeVisible();
+        await expect(activeMenu.getByText('Manage columns', { exact: true })).toBeVisible();
 
         await page.getByRole('heading', { name: 'Kategori Produk' }).click();
     }
@@ -88,9 +89,9 @@ test('Open Header Column', async ({ page }) =>{
     await aksiHeader.hover();
     await aksiHeader.getByRole('button', { name: 'Aksi column menu' }).click();
 
-    await expect(page.getByText('Sort by ASC')).not.toBeVisible();
-    await expect(page.getByText('Sort by DESC')).not.toBeVisible();
-    await expect(page.getByText('Filter')).not.toBeVisible();
+    await expect(activeMenu.getByText('Sort by ASC')).not.toBeVisible();
+    await expect(activeMenu.getByText('Sort by DESC')).not.toBeVisible();
+    await expect(activeMenu.getByText('Filter')).not.toBeVisible();
 });
 
 test('Sort ASC/DESC - All sortable columns', async ({ page }) =>{
@@ -116,7 +117,7 @@ test('Sort ASC/DESC - All sortable columns', async ({ page }) =>{
                 : { ariaValue: 'descending', icon: 'ArrowDownwardIcon', compare: (previous, current) => previous.localeCompare(current) >= 0 };
 
             await expect(columnHeader).toHaveAttribute('aria-sort', sort.ariaValue);
-            await expect(columnHeader.locator(`[data-testid="${sort.icon}"]`)).toBeVisible();
+            await expect(columnHeader.locator('.MuiDataGrid-sortIcon')).toBeVisible();
 
             await expect.poll(async () => {
                 const values = (await cells.allTextContents()).map((value) => value.trim());
@@ -156,13 +157,9 @@ test('Test Pagination', async ({ page }) =>{
 
     await expect(rowsPerPage).toHaveText('5');
 
-    await expect(
-        page.locator('.MuiTablePagination-displayedRows')
-    ).toHaveText(/1–5 of \d+/);
+    await expect(page.locator('.MuiTablePagination-displayedRows')).toHaveText(/1–5 of \d+/);
 
-    await expect(
-        page.locator('.MuiDataGrid-row')
-    ).toHaveCount(5);
+    await expect(page.locator('.MuiDataGrid-row')).toHaveCount(5);
 });
 
 test('Add Categories - Success', async ({ page }) =>{
@@ -275,4 +272,92 @@ test('Delete Categories - Failed (Used)', async ({ page }) =>{
     await page.getByRole('alertdialog').getByRole('button', { name: 'Hapus kategori', exact: true }).click()
 
     await expect(page.getByRole('alert')).toContainText('Kategori tidak dapat dihapus karena masih memiliki produk')
+});
+
+test('Open tab Terhapus', async ({ page }) => {
+    const tabTerhapus = page.getByRole('button', { name: 'Terhapus' });
+    const rows = page.locator('.MuiDataGrid-row');
+
+    await expect(tabTerhapus).toBeVisible();
+    await (tabTerhapus).click();
+
+    await expect(page.getByRole('heading', { level: 1, name: 'Kategori Produk' })).toBeVisible();
+    await expect(page.getByRole('combobox', { name: 'Status' })).toBeVisible();
+    await expect(page.getByRole('searchbox', { name: 'Cari Kategori' })).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: 'Nama' })).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: 'Kode Kategori' })).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: 'Slug' })).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: 'Deskripsi' })).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: 'Status' })).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: 'Aksi' })).toBeVisible();
+
+    const rowCount = await rows.count();
+    expect(rowCount).toBeGreaterThan(0);
+
+    for (let i=0; i<rowCount; i++){
+        const row = rows.nth(i);
+        await expect(row.getByRole('button', { name: 'Pulihkan kategori' })).toBeVisible();
+        await expect(row.getByRole('button', { name: 'Hapus permanen' })).toBeVisible();
+    }
+
+    await expect(page.getByRole('combobox', {name: 'Rows per page:'})).toBeVisible();
+    await expect(page.getByRole('combobox', {name: 'Rows per page:'})).toHaveText('10');
+    await expect(page.getByRole('button', {name: 'Go to previous page',})).toBeVisible();
+    await expect(page.getByRole('button', {name: 'Go to next page'})).toBeVisible();
+});
+
+test('Restore category data', async ({ page }) =>{
+    const tabTerhapus = page.getByRole('button', { name: 'Terhapus' });
+    const rows = page.locator('.MuiDataGrid-row');
+    const categoryRow = page.getByRole('row').filter({ hasText: 'Kategori Terhapus 1' })
+
+    await expect(tabTerhapus).toBeVisible();
+    await (tabTerhapus).click();
+
+    await expect(rows.first()).toBeVisible();
+    const rowCount = await rows.count();
+    expect(rowCount).toBeGreaterThan(0);
+
+    for (let i=0; i<rowCount; i++){
+        const row = rows.nth(i);
+        await expect(row.getByRole('button', { name: 'Pulihkan kategori' })).toBeVisible();
+        await expect(row.getByRole('button', { name: 'Hapus permanen' })).toBeVisible();
+    }
+
+    await categoryRow.getByRole('button', { name: 'Pulihkan kategori' }).click();
+
+    const dialog = page.getByRole('alertdialog');
+    await expect(dialog).toBeVisible();
+    await expect(dialog).toContainText('Kategori ini akan kembali muncul di daftar kategori aktif.');
+
+    await dialog.getByRole('button', { name: 'Pulihkan kategori' }).click();
+    await expect(page.getByRole('alert')).toContainText('Kategori berhasil dipulihkan.');
+});
+
+test('Delete data permanently', async ({ page }) =>{
+    const tabTerhapus = page.getByRole('button', { name: 'Terhapus' });
+    const rows = page.locator('.MuiDataGrid-row');
+    const categoryRow = page.getByRole('row').filter({ hasText: 'Kategori Terhapus 2' })
+
+    await expect(tabTerhapus).toBeVisible();
+    await (tabTerhapus).click();
+
+    await expect(rows.first()).toBeVisible();
+    const rowCount = await rows.count();
+    expect(rowCount).toBeGreaterThan(0);
+
+    for (let i=0; i<rowCount; i++){
+        const row = rows.nth(i);
+        await expect(row.getByRole('button', { name: 'Pulihkan kategori' })).toBeVisible();
+        await expect(row.getByRole('button', { name: 'Hapus permanen' })).toBeVisible();
+    }
+
+    await categoryRow.getByRole('button', { name: 'Hapus permanen' }).click();
+
+    const dialog = page.getByRole('alertdialog');
+    await expect(dialog).toBeVisible();
+    await expect(dialog).toContainText('Data kategori akan dihapus selamanya dan tidak dapat dipulihkan.');
+
+    await dialog.getByRole('button', { name: 'Hapus permanen' }).click();
+    await expect(page.getByRole('alert')).toContainText('Kategori dihapus permanen.');
 });

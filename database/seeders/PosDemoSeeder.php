@@ -45,8 +45,21 @@ class PosDemoSeeder extends Seeder
             'Perawatan Pribadi' => 'PRB',
             'Tes Kategori' => 'TES'
         ];
-        $categoryMap = [];
 
+        $deletedCategories = [
+        [
+            'name' => 'Kategori Terhapus 1',
+            'category_code' => 'TRS',
+            'slug' => 'kategori-terhapus-1',
+        ],
+        [
+            'name' => 'Kategori Terhapus 2',
+            'category_code' => 'TR2',
+            'slug' => 'kategori-terhapus-2',
+        ],
+    ];
+
+        $categoryMap = [];
         foreach ($categoryNames as $name) {
             $category = Category::firstOrCreate(
                 ['slug' => str($name)->slug()->value()],
@@ -59,6 +72,22 @@ class PosDemoSeeder extends Seeder
             );
 
             $categoryMap[$name] = $category->id;
+        }
+
+        foreach ($deletedCategories as $data) {
+            $category = Category::withTrashed()->updateOrCreate(
+                ['slug' => $data['slug']],
+                [
+                    'name' => $data['name'],
+                    'category_code' => $data['category_code'],
+                    'description' => 'Kategori untuk pengujian data terhapus',
+                    'is_active' => false,
+                ]
+            );
+
+            if (!$category->trashed()) {
+                $category->delete();
+            }
         }
 
         Customer::firstOrCreate(
