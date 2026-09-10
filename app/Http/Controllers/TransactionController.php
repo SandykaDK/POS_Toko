@@ -106,6 +106,7 @@ class TransactionController extends Controller
                 TransactionItem::create([
                     'transaction_id' => $transaction->id,
                     'product_id' => $item['product_id'],
+                    'product_name' => $products->get($item['product_id'])->name,
                     'quantity' => $item['quantity'],
                     'unit_price' => $item['unit_price'],
                     'discount_per_item' => $item['discount_per_item'] ?? 0,

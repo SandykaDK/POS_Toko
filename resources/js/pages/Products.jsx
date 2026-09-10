@@ -22,6 +22,7 @@ export function Products() {
     const [editingId, setEditingId] = useState(null);
     const [confirmDialog, setConfirmDialog] = useState(null);
     const [message, setMessage] = useState({ type: '', text: '' });
+    const [imagePreview, setImagePreview] = useState(null);
     const [formData, setFormData] = useState({
         name: '',
         product_code: '',
@@ -47,6 +48,19 @@ export function Products() {
         document.addEventListener('keydown', handleKeyDown);
         return () => document.removeEventListener('keydown', handleKeyDown);
     }, [confirmDialog]);
+
+    useEffect(() => {
+        if (formData.image_file) {
+            const previewUrl = URL.createObjectURL(formData.image_file);
+            setImagePreview(previewUrl);
+            return () => URL.revokeObjectURL(previewUrl);
+        }
+
+        setImagePreview(formData.image
+            ? (formData.image.startsWith('http') ? formData.image : `/storage/${formData.image}`)
+            : null);
+        return undefined;
+    }, [formData.image_file, formData.image]);
 
     const loadData = async () => {
         try {
@@ -260,8 +274,9 @@ export function Products() {
                           React.createElement(
                               'div',
                               { className: 'form-group product-field-full' },
-                              React.createElement('label', null, 'Nama Produk'),
+                              React.createElement('label', { htmlFor: 'product_name' }, 'Nama Produk'),
                               React.createElement('input', {
+                                  id: 'product_name',
                                   type: 'text',
                                   value: formData.name,
                                   onChange: (e) => setFormData({ ...formData, name: e.target.value }),
@@ -271,8 +286,9 @@ export function Products() {
                           React.createElement(
                               'div',
                               { className: 'form-group product-field-half' },
-                              React.createElement('label', null, 'Kode Produk'),
+                              React.createElement('label', { htmlFor: 'product_code' }, 'Kode Produk'),
                               React.createElement('input', {
+                                  id: 'product_code',
                                   type: 'text',
                                   value: formData.product_code,
                                   readOnly: true,
@@ -283,10 +299,11 @@ export function Products() {
                           React.createElement(
                               'div',
                               { className: 'form-group product-field-half' },
-                              React.createElement('label', null, 'Kategori'),
+                              React.createElement('label', { htmlFor: 'category_id' }, 'Kategori'),
                               React.createElement(
                                   'select',
                                   {
+                                      id: 'category_id',
                                       value: formData.category_id,
                                       onChange: (e) => setFormData({
                                           ...formData,
@@ -304,8 +321,9 @@ export function Products() {
                           React.createElement(
                               'div',
                               { className: 'form-group product-field-half' },
-                              React.createElement('label', null, 'Harga Beli'),
+                              React.createElement('label', { htmlFor: 'cost_price' }, 'Harga Beli'),
                               React.createElement('input', {
+                                  id: 'cost_price',
                                   type: 'number',
                                   value: formData.cost_price,
                                   onChange: (e) => setFormData({ ...formData, cost_price: e.target.value }),
@@ -315,8 +333,9 @@ export function Products() {
                           React.createElement(
                               'div',
                               { className: 'form-group product-field-half' },
-                              React.createElement('label', null, 'Harga Jual'),
+                              React.createElement('label', { htmlFor: 'selling_price' }, 'Harga Jual'),
                               React.createElement('input', {
+                                  id: 'selling_price',
                                   type: 'number',
                                   value: formData.selling_price,
                                   onChange: (e) => setFormData({ ...formData, selling_price: e.target.value }),
@@ -326,8 +345,9 @@ export function Products() {
                           React.createElement(
                               'div',
                               { className: 'form-group product-field-third' },
-                              React.createElement('label', null, 'Stok'),
+                              React.createElement('label', { htmlFor: 'stock' }, 'Stok'),
                               React.createElement('input', {
+                                  id: 'stock',
                                   type: 'number',
                                   value: formData.stock,
                                   onChange: (e) => setFormData({ ...formData, stock: e.target.value }),
@@ -337,8 +357,9 @@ export function Products() {
                           React.createElement(
                               'div',
                               { className: 'form-group product-field-third' },
-                              React.createElement('label', null, 'Stok Minimal'),
+                              React.createElement('label', { htmlFor: 'min_stock' }, 'Stok Minimal'),
                               React.createElement('input', {
+                                  id: 'min_stock',
                                   type: 'number',
                                   value: formData.min_stock,
                                   onChange: (e) => setFormData({ ...formData, min_stock: e.target.value }),
@@ -348,15 +369,53 @@ export function Products() {
                           React.createElement(
                               'div',
                               { className: 'form-group product-field-third' },
-                              React.createElement('label', null, 'Unit'),
+                              React.createElement('label', { htmlFor: 'unit' }, 'Unit'),
                               React.createElement('select', {
+                                  id: 'unit',
                                   value: formData.unit,
                                   onChange: (e) => setFormData({ ...formData, unit: e.target.value }),
-                              }, React.createElement('option', null, 'pcs'), React.createElement('option', null, 'box'), React.createElement('option', null, 'lusin')),
+                              },
+                              React.createElement('option', null, 'pcs'),
+                              React.createElement('option', null, 'box'),
+                              React.createElement('option', null, 'lusin')),
                           ),
                           React.createElement(
                               'div',
-                              { className: 'form-group checkbox product-field-third' },
+                              { className: 'form-group product-field-full' },
+                              React.createElement('label', { htmlFor: 'product_image' }, 'Gambar Produk'),
+                              imagePreview
+                                  ? React.createElement('img', {
+                                      className: 'product-image-preview',
+                                      src: imagePreview,
+                                      alt: formData.name ? `Preview gambar ${formData.name}` : 'Preview gambar produk',
+                                  })
+                                  : null,
+                              formData.image && !formData.image_file
+                                  ? React.createElement(
+                                    'small', { className: 'product-image-hint' },
+                                    'Gambar saat ini akan dipertahankan jika tidak memilih file baru.')
+                                  : null,
+                              React.createElement('input', {
+                                  id: 'product_image',
+                                  type: 'file',
+                                  accept: 'image/jpeg,image/png,image/webp',
+                                  onChange: (e) => setFormData({ ...formData, image_file: e.target.files[0] || null }),
+                              }),
+                          ),
+                          React.createElement(
+                              'div',
+                              { className: 'form-group product-field-full' },
+                              React.createElement('label', { htmlFor: 'description' }, 'Deskripsi'),
+                              React.createElement('textarea', {
+                                  id: 'description',
+                                  value: formData.description,
+                                  onChange: (e) => setFormData({ ...formData, description: e.target.value }),
+                                  rows: 3,
+                              }),
+                          ),
+                          React.createElement(
+                              'div',
+                              { className: 'form-group checkbox product-field-full' },
                               React.createElement('input', {
                                   type: 'checkbox',
                                   id: 'product_is_active',
@@ -364,30 +423,6 @@ export function Products() {
                                   onChange: (e) => setFormData({ ...formData, is_active: e.target.checked }),
                               }),
                               React.createElement('label', { htmlFor: 'product_is_active' }, 'Aktif'),
-                          ),
-                          React.createElement(
-                              'div',
-                              { className: 'form-group product-field-full' },
-                              React.createElement('label', { htmlFor: 'product_image' }, 'Gambar Produk'),
-                              React.createElement('input', {
-                                  id: 'product_image',
-                                  type: 'file',
-                                  accept: 'image/jpeg,image/png,image/webp',
-                                  onChange: (e) => setFormData({ ...formData, image_file: e.target.files[0] || null }),
-                              }),
-                              formData.image && !formData.image_file
-                                  ? React.createElement('small', { className: 'product-image-hint' }, 'Gambar saat ini akan dipertahankan jika tidak memilih file baru.')
-                                  : null,
-                          ),
-                          React.createElement(
-                              'div',
-                              { className: 'form-group product-field-full' },
-                              React.createElement('label', null, 'Deskripsi'),
-                              React.createElement('textarea', {
-                                  value: formData.description,
-                                  onChange: (e) => setFormData({ ...formData, description: e.target.value }),
-                                  rows: 3,
-                              }),
                           ),
                           React.createElement(
                               'div',

@@ -248,7 +248,7 @@ body {
 }
 
 .catalog-body {
-    padding: 1rem;
+    padding: 0.35rem 1rem 1rem;
 }
 
 .category-list {
@@ -294,7 +294,9 @@ body {
 }
 
 .product-card .thumb {
+    flex: 0 0 110px;
     height: 110px;
+    min-height: 110px;
     border-radius: 0.8rem;
     background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
     display: grid;
@@ -303,12 +305,15 @@ body {
     color: var(--primary-dark);
     font-size: 1.6rem;
     margin-bottom: 0.8rem;
+    overflow: hidden;
 }
 
 .product-card .thumb img {
+    display: block;
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: contain;
+    object-position: center center;
     border-radius: inherit;
 }
 

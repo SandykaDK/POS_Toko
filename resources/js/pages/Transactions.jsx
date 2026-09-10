@@ -59,7 +59,7 @@ export function Transactions() {
         const items = transaction.transaction_items || transaction.transactionItems || [];
         const itemRows = items.map((item) => `
             <div class="item">
-                <div class="item-name">${escapeHtml(item.product?.name || `Produk #${item.product_id}`)}</div>
+                <div class="item-name">${escapeHtml(item.product_name || item.product?.name || `Produk #${item.product_id}`)}</div>
                 <div class="item-detail"><span>${item.quantity} x ${money(item.unit_price)}</span><strong>${money(item.subtotal)}</strong></div>
             </div>
         `).join('');
@@ -224,7 +224,7 @@ export function Transactions() {
                           (selectedTransaction.transaction_items || selectedTransaction.transactionItems || []).map((item) => React.createElement(
                               'div',
                               { className: 'transaction-detail-item', key: item.id },
-                              React.createElement('div', null, React.createElement('strong', null, item.product?.name || `Produk #${item.product_id}`), React.createElement('span', null, `${item.quantity} x ${money(item.unit_price)}`)),
+                              React.createElement('div', null, React.createElement('strong', null, item.product_name || item.product?.name || `Produk #${item.product_id}`), React.createElement('span', null, `${item.quantity} x ${money(item.unit_price)}`)),
                               React.createElement('strong', null, money(item.subtotal)),
                           )),
                       ),

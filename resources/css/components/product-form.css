@@ -44,6 +44,17 @@
     font-size: 12px;
 }
 
+.product-image-preview {
+    display: block;
+    width: 120px;
+    height: 120px;
+    margin-top: 10px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background: #f8fafc;
+    object-fit: contain;
+}
+
 @media (max-width: 600px) {
     .products-form-modal {
         width: 94%;

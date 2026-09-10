@@ -30,7 +30,11 @@ export async function apiFetch(endpoint, options = {}) {
             localStorage.removeItem(TOKEN_KEY);
         }
 
-        const error = new Error(payload.message || 'Request failed');
+        const validationMessages = Object.values(payload.errors || {}).flat();
+        const errorMessage = validationMessages.length
+            ? validationMessages.join(' ')
+            : (payload.message || 'Request failed');
+        const error = new Error(errorMessage);
         error.status = response.status;
         error.errors = payload.errors || {};
         throw error;

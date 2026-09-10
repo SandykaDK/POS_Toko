@@ -217,7 +217,7 @@ export function Categories() {
                   { className: 'form-overlay' },
                   React.createElement(
                       'div',
-                      { className: 'form-modal' },
+                      { className: 'form-modal categories-form-modal' },
                       React.createElement(
                           'div',
                           { className: 'form-header' },

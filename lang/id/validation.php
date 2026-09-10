@@ -29,6 +29,8 @@ return [
         'phone' => 'Telepon',
         'address' => 'Alamat',
         'category_id' => 'Kategori',
+        'category_code' => 'Kode Kategori',
+        'slug' => 'Slug',
         'sku' => 'SKU',
         'cost_price' => 'Harga beli',
         'selling_price' => 'Harga jual',

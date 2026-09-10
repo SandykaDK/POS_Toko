@@ -163,59 +163,63 @@ test('Test Pagination', async ({ page }) =>{
 });
 
 test('Add Categories - Success', async ({ page }) =>{
-    const categoryName = `Kategori E2E ${Date.now()}`;
+    const categoryName = `Kategori ${Date.now()}`;
     const categoryCode = `K${String.fromCharCode(65 + (Date.now() % 26))}${String.fromCharCode(65 + (Math.floor(Date.now() / 26) % 26))}`;
+    const modalCreate = page.locator('.categories-form-modal');
 
-    await page.getByRole('link', {name:'Kategori'}).click()
-    await expect(page).toHaveURL('http://tokopos.test/categories')
-    await expect(page.getByRole('heading', { level: 1, name: 'Kategori Produk' })).toBeVisible()
     await page.getByRole('button', { name: 'Tambah' }).click()
     await expect(page.getByRole('heading', { level: 2, name: 'Tambah Kategori' })).toBeVisible()
 
-    await page.getByRole('textbox', { name: 'Nama Kategori' }).fill(categoryName)
-    await page.getByRole('textbox', { name: 'Kode Kategori' }).fill(categoryCode)
-    await page.getByRole('textbox', { name: 'Deskripsi' }).fill('Ini adalah kategori baru')
-    await page.getByRole('checkbox', { name: 'Aktif' }).check()
+    await modalCreate.getByRole('textbox', { name: 'Nama Kategori' }).fill(categoryName);
+    await modalCreate.getByRole('textbox', { name: 'Kode Kategori' }).fill(categoryCode);
+    await modalCreate.getByRole('textbox', { name: 'Deskripsi' }).fill('Ini adalah kategori baru');
+    await modalCreate.getByRole('checkbox', { name: 'Aktif' }).check();
 
-    await page.getByRole('button', { name: 'Tambah Kategori', exact: true }).click()
-    await expect(page.getByRole('alert')).toContainText('Kategori berhasil ditambahkan.')
+    await modalCreate.getByRole('button', { name: 'Tambah Kategori', exact: true }).click();
+    await expect(page.getByRole('alert')).toContainText('Kategori berhasil ditambahkan.');
 });
 
 test('Add Categories - Failed (duplicate entry)', async ({ page }) =>{
     const categoryName = 'Makanan';
     const categoryCode = 'MKN';
+    const modalCreate = page.locator('.categories-form-modal');
 
-    await page.getByRole('link', {name:'Kategori'}).click()
-    await expect(page).toHaveURL('http://tokopos.test/categories')
-    await expect(page.getByRole('heading', { level: 1, name: 'Kategori Produk' })).toBeVisible()
     await page.getByRole('button', { name: 'Tambah' }).click()
     await expect(page.getByRole('heading', { level: 2, name: 'Tambah Kategori' })).toBeVisible()
 
-    await page.getByRole('textbox', { name: 'Nama Kategori' }).fill(categoryName)
-    await page.getByRole('textbox', { name: 'Kode Kategori' }).fill(categoryCode)
-    await page.getByRole('textbox', { name: 'Deskripsi' }).fill('Ini adalah kategori baru')
-    await page.getByRole('checkbox', { name: 'Aktif' }).check()
+    await modalCreate.getByRole('textbox', { name: 'Nama Kategori' }).fill(categoryName)
+    await modalCreate.getByRole('textbox', { name: 'Kode Kategori' }).fill(categoryCode)
+    await modalCreate.getByRole('textbox', { name: 'Deskripsi' }).fill('Ini adalah kategori baru')
+    await modalCreate.getByRole('checkbox', { name: 'Aktif' }).check()
 
-    await page.getByRole('button', { name: 'Tambah Kategori', exact: true }).click()
-    await expect(page.getByRole('alert')).toContainText('category code sudah digunakan. (and 1 more error)')
+    await modalCreate.getByRole('button', { name: 'Tambah Kategori', exact: true }).click()
+    await expect(page.getByRole('alert')).toContainText('Kode Kategori sudah digunakan. Slug sudah digunakan.')
 });
 
-test('Add Categories - Failed (empty required field)', async ({ page }) =>{
-    await page.getByRole('link', {name:'Kategori'}).click()
-    await expect(page).toHaveURL('http://tokopos.test/categories')
-    await expect(page.getByRole('heading', { level: 1, name: 'Kategori Produk' })).toBeVisible()
-    await page.getByRole('button', { name: 'Tambah' }).click()
-    await expect(page.getByRole('heading', { level: 2, name: 'Tambah Kategori' })).toBeVisible()
+// Empty Field Test
+const requiredFields = [
+    { name: 'Nama Kategori', role: 'textbox' },
+    { name: 'Kode Kategori', role: 'textbox' }
+];
 
-    await page.getByRole('button', { name: 'Tambah Kategori', exact: true }).click()
+for (const field of requiredFields) {
+  test(`Add Categories - Failed (${field.name} is empty)`, async ({ page }) => {
+    const modalCreate = page.locator('.categories-form-modal');
+    await page.getByRole('button', { name: 'Tambah' }).click();
 
-    const categoryName = page.getByRole('textbox', { name: 'Nama Kategori' })
-    await expect.poll(() => categoryName.evaluate((input) => input.validity.valid)).toBe(false)
-    await expect(categoryName).toHaveJSProperty('validationMessage', 'Please fill out this field.')
+    // Isi field wajib lain dengan data valid.
+    await modalCreate.getByRole('textbox', { name: 'Nama Kategori' }).fill('Kategori test');
+    await modalCreate.getByRole('textbox', { name: 'Kode Kategori' }).fill('KTS');
 
-    const formIsInvalid = await page.locator('form').evaluate((form) => !form.checkValidity())
-    expect(formIsInvalid).toBe(true)
-});
+    // Kosongkan field yang sedang diuji.
+    const targetField = modalCreate.getByRole(field.role, { name: field.name, exact: field.exact });
+
+    await targetField.fill('');
+
+    await modalCreate.getByRole('button', {name: 'Tambah Kategori',exact: true}).click();
+    expect(await targetField.evaluate((input) => input.validity.valid)).toBe(false);
+  });
+}
 
 test('Edit Categories - Success', async ({ page }) =>{
     const categoryRow = page.getByRole('row').filter({ hasText: 'Sembako' });
@@ -227,8 +231,10 @@ test('Edit Categories - Success', async ({ page }) =>{
 
     await expect(page.getByRole('textbox', { name: 'Nama Kategori' })).toHaveValue('Sembako')
     await page.getByRole('textbox', { name: 'Nama Kategori' }).fill('Tes Ganti')
+
     await expect(page.getByRole('textbox', { name: 'Kode Kategori' })).toHaveValue('SBK')
     await page.getByRole('textbox', { name: 'Kode Kategori' }).fill('GNT')
+
     await expect(page.getByRole('textbox', { name: 'Deskripsi' })).toHaveValue('Kategori Sembako')
     await page.getByRole('button', { name: 'Simpan Perubahan' }).click()
 
@@ -249,7 +255,7 @@ test('Edit Categories - Failed (duplicate entry)', async ({ page }) =>{
     await expect(page.getByRole('textbox', { name: 'Deskripsi' })).toHaveValue('Kategori Sembako')
     await page.getByRole('button', { name: 'Simpan Perubahan' }).click()
 
-    await expect(page.getByRole('alert')).toContainText('category code sudah digunakan. (and 1 more error)')
+    await expect(page.getByRole('alert')).toContainText('Kode Kategori sudah digunakan. Slug sudah digunakan.')
 });
 
 test('Delete Categories - Success', async ({ page }) =>{
