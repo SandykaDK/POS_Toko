@@ -202,6 +202,7 @@ export function Customers() {
                                   type: 'email',
                                   value: formData.email,
                                   onChange: (e) => setFormData({ ...formData, email: e.target.value }),
+                                  required: true,
                               }),
                           ),
                           React.createElement(
@@ -213,6 +214,7 @@ export function Customers() {
                                   type: 'number',
                                   value: formData.phone,
                                   onChange: (e) => setFormData({ ...formData, phone: e.target.value }),
+                                  required: true,
                               }),
                           ),
                           React.createElement(

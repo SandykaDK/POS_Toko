@@ -198,3 +198,33 @@ test('Add Customers - Failed (duplicate entry)', async ({ page }) =>{
     await modalCreate.getByRole('button', { name: 'Tambah Pelanggan', exact: true }).click();
     await expect(page.getByRole('alert')).toContainText('Email sudah digunakan')
 });
+
+// Empty Field Test
+const requiredFields = [
+    { name: 'Nama ', role: 'textbox' },
+    { name: 'Email', role: 'textbox' },
+    { name: 'Telepon', role: 'spinbutton' },
+];
+
+for (const field of requiredFields) {
+  test(`Add Customers - Failed (${field.name} is empty)`, async ({ page }) => {
+    const modalCreate = page.locator('.customers-form-modal');
+    await page.getByRole('button', { name: 'Tambah' }).click();
+
+    // Isi field wajib lain dengan data valid.
+    await modalCreate.getByRole('textbox', { name: 'Nama' }).fill('Test empty');
+    await modalCreate.getByRole('textbox', { name: 'Email' }).fill('Test@gmail.com');
+    await modalCreate.getByRole('spinbutton', { name: 'Telepon' }).fill('089927671926');
+
+    // Kosongkan field yang sedang diuji.
+    const targetField = modalCreate.getByRole(field.role, { name: field.name, exact: field.exact });
+
+    await targetField.fill('');
+
+    await modalCreate.getByRole('button', {name: 'Tambah Pelanggan',exact: true}).click();
+    expect(await targetField.evaluate((input) => input.validity.valid)).toBe(false);
+  });
+}
+
+
+

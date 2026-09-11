@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Customer;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Validation\Rule;
 
 class CustomerController extends Controller
 {
@@ -44,8 +45,8 @@ class CustomerController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:100',
-            'email' => 'nullable|email|max:100|unique:customers',
-            'phone' => 'nullable|string|max:20',
+            'email' => 'required|email|max:100|unique:customers',
+            'phone' => 'required|string|max:20|unique:customers,phone',
             'address' => 'nullable|string',
             'status' => 'in:active,inactive',
         ]);
@@ -74,8 +75,8 @@ class CustomerController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:100',
-            'email' => "nullable|email|max:100|unique:customers,email,{$customer->id}",
-            'phone' => 'nullable|string|max:20',
+            'email' => ['required', 'email', 'max:100', Rule::unique('customers', 'email')->ignore($customer->id)],
+            'phone' => ['required', 'string', 'max:20', Rule::unique('customers', 'phone')->ignore($customer->id)],
             'address' => 'nullable|string',
             'status' => 'in:active,inactive',
         ]);
