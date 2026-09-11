@@ -59,6 +59,43 @@ class PosDemoSeeder extends Seeder
         ],
     ];
 
+        $deletedCustomers = [
+            [
+                'email' => 'pelanggan-terhapus-1@tokopos.test',
+                'name' => 'Pelanggan Terhapus 1',
+                'phone' => '081199990001',
+            ],
+            [
+                'email' => 'pelanggan-terhapus-2@tokopos.test',
+                'name' => 'Pelanggan Terhapus 2',
+                'phone' => '081199990002',
+            ],
+        ];
+
+        $deletedProducts = [
+            [
+                'name' => 'Produk Terhapus 1',
+                'product_code' => 'TRS-001',
+                'selling_price' => 5000,
+            ],
+            [
+                'name' => 'Produk Terhapus 2',
+                'product_code' => 'TRS-002',
+                'selling_price' => 7500,
+            ],
+        ];
+
+        $deletedDiscounts = [
+            [
+                'code' => 'TRASH10',
+                'name' => 'Diskon Terhapus 1',
+            ],
+            [
+                'code' => 'TRASH20',
+                'name' => 'Diskon Terhapus 2',
+            ],
+        ];
+
         $categoryMap = [];
         foreach ($categoryNames as $name) {
             $category = Category::firstOrCreate(
@@ -90,17 +127,137 @@ class PosDemoSeeder extends Seeder
             }
         }
 
-        Customer::firstOrCreate(
-            ['email' => 'pelanggan@tokopos.test'],
+        foreach ($deletedCustomers as $data) {
+            $customer = Customer::withTrashed()->updateOrCreate(
+                ['email' => $data['email']],
+                [
+                    'name' => $data['name'],
+                    'phone' => $data['phone'],
+                    'address' => 'Data pelanggan untuk pengujian data terhapus',
+                    'total_purchases' => 0,
+                    'purchase_count' => 0,
+                    'status' => 'inactive',
+                ]
+            );
+
+            if (!$customer->trashed()) {
+                $customer->delete();
+            }
+        }
+
+        foreach ($deletedProducts as $data) {
+            $product = Product::withTrashed()->updateOrCreate(
+                ['product_code' => $data['product_code']],
+                [
+                    'category_id' => $categoryMap['Makanan'],
+                    'name' => $data['name'],
+                    'cost_price' => 3000,
+                    'selling_price' => $data['selling_price'],
+                    'description' => 'Data produk untuk pengujian data terhapus',
+                    'min_stock' => 5,
+                    'stock' => 10,
+                    'unit' => 'pcs',
+                    'image' => null,
+                    'is_active' => false,
+                ]
+            );
+
+            if (!$product->trashed()) {
+                $product->delete();
+            }
+        }
+
+        foreach ($deletedDiscounts as $data) {
+            $discount = Discount::withTrashed()->updateOrCreate(
+                ['code' => $data['code']],
+                [
+                    'name' => $data['name'],
+                    'description' => 'Data diskon untuk pengujian data terhapus',
+                    'type' => 'percentage',
+                    'value' => 10,
+                    'max_discount' => 10000,
+                    'min_purchase' => 25000,
+                    'max_usage' => 10,
+                    'usage_count' => 0,
+                    'start_date' => now()->subMonth(),
+                    'end_date' => now()->subDay(),
+                    'is_active' => false,
+                ]
+            );
+
+            if (!$discount->trashed()) {
+                $discount->delete();
+            }
+        }
+
+        $customers = [
             [
+                'email' => 'pelanggan@tokopos.test',
                 'name' => 'Pelanggan Umum',
                 'phone' => '081122334455',
                 'address' => 'Jl. Raya No. 1',
-                'total_purchases' => 0,
-                'purchase_count' => 0,
                 'status' => 'active',
-            ]
-        );
+            ],
+            [
+                'email' => 'andi@tokopos.test',
+                'name' => 'Andi Saputra',
+                'phone' => '081122334456',
+                'address' => 'Jl. Melati No. 2',
+                'status' => 'active',
+            ],
+            [
+                'email' => 'budi@tokopos.test',
+                'name' => 'Budi Santoso',
+                'phone' => '081122334457',
+                'address' => 'Jl. Kenanga No. 8',
+                'status' => 'active',
+            ],
+            [
+                'email' => 'citra@tokopos.test',
+                'name' => 'Citra Lestari',
+                'phone' => '081122334458',
+                'address' => 'Jl. Mawar No. 14',
+                'status' => 'active',
+            ],
+            [
+                'email' => 'dedi@tokopos.test',
+                'name' => 'Dedi Kurniawan',
+                'phone' => '081122334459',
+                'address' => 'Jl. Anggrek No. 6',
+                'status' => 'active',
+            ],
+            [
+                'email' => 'eka@tokopos.test',
+                'name' => 'Eka Wulandari',
+                'phone' => '081122334460',
+                'address' => 'Jl. Flamboyan No. 3',
+                'status' => 'inactive',
+            ],
+            [
+                'email' => 'fajar@tokopos.test',
+                'name' => 'Fajar Hidayat',
+                'phone' => '081122334461',
+                'address' => 'Jl. Teratai No. 11',
+                'status' => 'inactive',
+            ],
+            [
+                'email' => 'gita@tokopos.test',
+                'name' => 'Gita Permata',
+                'phone' => '081122334462',
+                'address' => 'Jl. Dahlia No. 5',
+                'status' => 'inactive',
+            ],
+        ];
+
+        foreach ($customers as $data) {
+            Customer::withTrashed()->updateOrCreate(
+                ['email' => $data['email']],
+                array_merge($data, [
+                    'total_purchases' => 0,
+                    'purchase_count' => 0,
+                ])
+            );
+        }
 
         $catalogProducts = [
             ['name' => 'Racik Bumbu Sayur Asem', 'category' => 'Bumbu', 'selling_price' => 2000],

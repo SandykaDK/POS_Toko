@@ -16,7 +16,7 @@ class CustomerController extends Controller
                     ->orWhere('email', 'like', "%{$search}%")
                     ->orWhere('phone', 'like', "%{$search}%");
             })
-            ->when(request()->filled('status'), function ($query, $status) {
+            ->when(request('status'), function ($query, $status) {
                 return $query->where('status', $status);
             })
             ->orderByDesc('total_purchases')
@@ -47,7 +47,7 @@ class CustomerController extends Controller
             'email' => 'nullable|email|max:100|unique:customers',
             'phone' => 'nullable|string|max:20',
             'address' => 'nullable|string',
-            'status' => 'in:active,inactive,vip',
+            'status' => 'in:active,inactive',
         ]);
 
         $customer = Customer::create(array_merge($validated, [
@@ -77,7 +77,7 @@ class CustomerController extends Controller
             'email' => "nullable|email|max:100|unique:customers,email,{$customer->id}",
             'phone' => 'nullable|string|max:20',
             'address' => 'nullable|string',
-            'status' => 'in:active,inactive,vip',
+            'status' => 'in:active,inactive',
         ]);
 
         $customer->update($validated);

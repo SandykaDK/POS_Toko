@@ -375,3 +375,96 @@ test('Delete Products - Success', async ({ page }) =>{
 
     await expect(page.getByRole('alert')).toContainText('Produk berhasil dihapus.');
 });
+
+test('Open tab Terhapus', async ({ page }) => {
+    const tabTerhapus = page.getByRole('button', { name: 'Terhapus' });
+    const rows = page.locator('.MuiDataGrid-row');
+
+    await expect(tabTerhapus).toBeVisible();
+    await (tabTerhapus).click();
+
+    await expect(page.getByRole('heading', { level: 1, name: 'Data Produk' })).toBeVisible();
+    await expect(page.getByRole('searchbox', { name: 'Cari Produk' })).toBeVisible();
+    await expect(page.getByRole('combobox', { name: 'Kategori' })).toBeVisible();
+    await expect(page.getByRole('combobox', { name: 'Status' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Tambah' })).toBeVisible();
+
+    await expect(page.getByRole('columnheader', { name: 'Kode Produk' })).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: 'Nama' })).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: 'Kategori' })).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: 'Harga Beli' })).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: 'Harga Jual' })).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: 'Stok' })).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: 'Status' })).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: 'Aksi' })).toBeVisible();
+
+    const rowCount = await rows.count();
+    expect(rowCount).toBeGreaterThan(0);
+
+    for (let i=0; i<rowCount; i++){
+        const row = rows.nth(i);
+        await expect(row.getByRole('button', { name: 'Pulihkan produk' })).toBeVisible();
+        await expect(row.getByRole('button', { name: 'Hapus permanen' })).toBeVisible();
+    }
+
+    await expect(page.getByRole('combobox', {name: 'Rows per page:'})).toBeVisible();
+    await expect(page.getByRole('combobox', {name: 'Rows per page:'})).toHaveText('10');
+    await expect(page.getByRole('button', {name: 'Go to previous page',})).toBeVisible();
+    await expect(page.getByRole('button', {name: 'Go to next page'})).toBeVisible();
+});
+
+test('Restore products data', async ({ page }) =>{
+    const tabTerhapus = page.getByRole('button', { name: 'Terhapus' });
+    const rows = page.locator('.MuiDataGrid-row');
+    const productsRow = page.getByRole('row').filter({ hasText: 'Produk Terhapus 1' })
+
+    await expect(tabTerhapus).toBeVisible();
+    await (tabTerhapus).click();
+
+    await expect(rows.first()).toBeVisible();
+    const rowCount = await rows.count();
+    expect(rowCount).toBeGreaterThan(0);
+
+    for (let i=0; i<rowCount; i++){
+        const row = rows.nth(i);
+        await expect(row.getByRole('button', { name: 'Pulihkan produk' })).toBeVisible();
+        await expect(row.getByRole('button', { name: 'Hapus permanen' })).toBeVisible();
+    }
+
+    await productsRow.getByRole('button', { name: 'Pulihkan produk' }).click();
+
+    const dialog = page.getByRole('alertdialog');
+    await expect(dialog).toBeVisible();
+    await expect(dialog).toContainText('Produk ini akan kembali muncul di daftar produk aktif.');
+
+    await dialog.getByRole('button', { name: 'Pulihkan produk' }).click();
+    await expect(page.getByRole('alert')).toContainText('Produk berhasil dipulihkan.');
+});
+
+test('Delete products data permanently', async ({ page }) =>{
+    const tabTerhapus = page.getByRole('button', { name: 'Terhapus' });
+    const rows = page.locator('.MuiDataGrid-row');
+    const productsRow = page.getByRole('row').filter({ hasText: 'Produk Terhapus 2' })
+
+    await expect(tabTerhapus).toBeVisible();
+    await (tabTerhapus).click();
+
+    await expect(rows.first()).toBeVisible();
+    const rowCount = await rows.count();
+    expect(rowCount).toBeGreaterThan(0);
+
+    for (let i=0; i<rowCount; i++){
+        const row = rows.nth(i);
+        await expect(row.getByRole('button', { name: 'Pulihkan produk' })).toBeVisible();
+        await expect(row.getByRole('button', { name: 'Hapus permanen' })).toBeVisible();
+    }
+
+    await productsRow.getByRole('button', { name: 'Hapus permanen' }).click();
+
+    const dialog = page.getByRole('alertdialog');
+    await expect(dialog).toBeVisible();
+    await expect(dialog).toContainText('Data produk akan dihapus selamanya dan tidak dapat dipulihkan.');
+
+    await dialog.getByRole('button', { name: 'Hapus permanen' }).click();
+    await expect(page.getByRole('alert')).toContainText('Produk dihapus permanen.');
+});

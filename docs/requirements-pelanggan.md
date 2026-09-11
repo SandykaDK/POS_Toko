@@ -12,7 +12,7 @@ Mengelola data pelanggan dan status loyalitas pelanggan.
 - Pengguna dapat menambah dan mengubah pelanggan.
 - Form memuat nama, email, telepon, alamat, dan status.
 - Email boleh kosong; jika diisi harus valid dan unik.
-- Status hanya `active`, `inactive`, atau `vip`.
+- Status hanya `active`atau `inactive`.
 - Pengguna dapat soft delete, restore, dan force delete pelanggan.
 - Pelanggan yang memiliki transaksi tidak dapat dihapus permanen.
 - Sistem menampilkan total pembelian dan jumlah transaksi jika tersedia.

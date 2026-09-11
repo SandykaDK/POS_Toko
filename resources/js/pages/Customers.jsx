@@ -136,7 +136,7 @@ export function Customers() {
             headerName: 'Status',
             minWidth: 110,
             flex: 0.8,
-            valueGetter: (_value, row) => view === 'trashed' ? 'Terhapus' : row.status === 'active' ? 'Aktif' : row.status === 'vip' ? 'VIP' : 'Nonaktif',
+            valueGetter: (_value, row) => view === 'trashed' ? 'Terhapus' : row.status === 'active' ? 'Aktif' : 'Nonaktif',
             renderCell: (params) => React.createElement('span', { className: `category-status ${view === 'trashed' ? 'deleted' : params.row.status === 'active' ? 'active' : 'inactive'}` }, params.value),
         },
         {
@@ -184,8 +184,9 @@ export function Customers() {
                           React.createElement(
                               'div',
                               { className: 'form-group customer-field-full' },
-                              React.createElement('label', null, 'Nama'),
+                              React.createElement('label', { htmlFor: 'name' }, 'Nama'),
                               React.createElement('input', {
+                                  id: 'name',
                                   type: 'text',
                                   value: formData.name,
                                   onChange: (e) => setFormData({ ...formData, name: e.target.value }),
@@ -195,8 +196,9 @@ export function Customers() {
                           React.createElement(
                               'div',
                               { className: 'form-group customer-field-half' },
-                              React.createElement('label', null, 'Email'),
+                              React.createElement('label', { htmlFor: 'email' }, 'Email'),
                               React.createElement('input', {
+                                  id: 'email',
                                   type: 'email',
                                   value: formData.email,
                                   onChange: (e) => setFormData({ ...formData, email: e.target.value }),
@@ -205,9 +207,10 @@ export function Customers() {
                           React.createElement(
                               'div',
                               { className: 'form-group customer-field-half' },
-                              React.createElement('label', null, 'Telepon'),
+                              React.createElement('label', { htmlFor: 'phone' }, 'Telepon'),
                               React.createElement('input', {
-                                  type: 'tel',
+                                  id: 'phone',
+                                  type: 'number',
                                   value: formData.phone,
                                   onChange: (e) => setFormData({ ...formData, phone: e.target.value }),
                               }),
@@ -215,8 +218,9 @@ export function Customers() {
                           React.createElement(
                               'div',
                               { className: 'form-group customer-field-full' },
-                              React.createElement('label', null, 'Alamat'),
+                              React.createElement('label', { htmlFor: 'address' }, 'Alamat'),
                               React.createElement('textarea', {
+                                  id: 'address',
                                   value: formData.address,
                                   onChange: (e) => setFormData({ ...formData, address: e.target.value }),
                                   rows: 2,
@@ -266,7 +270,6 @@ export function Customers() {
                             React.createElement(MenuItem, { value: '' }, 'Semua Status'),
                             React.createElement(MenuItem, { value: 'active' }, 'Aktif'),
                             React.createElement(MenuItem, { value: 'inactive' }, 'Nonaktif'),
-                            React.createElement(MenuItem, { value: 'vip' }, 'VIP'),
                         ),
                     ),
                 ),
