@@ -6,6 +6,7 @@ use App\Models\Transaction;
 use App\Models\TransactionItem;
 use App\Models\Product;
 use App\Models\Customer;
+use App\Models\Discount;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
@@ -55,6 +56,7 @@ class TransactionController extends Controller
                 'invoice_number' => 'required|string|unique:transactions',
                 'user_id' => 'required|exists:users,id',
                 'customer_id' => 'nullable|exists:customers,id',
+                'discount_code' => 'nullable|string|max:50',
                 'transaction_date' => 'required|date',
                 'subtotal' => 'required|numeric|min:0',
                 'discount_amount' => 'required|numeric|min:0',
@@ -68,6 +70,34 @@ class TransactionController extends Controller
                 'items.*.unit_price' => 'required|numeric|min:0',
                 'items.*.discount_per_item' => 'numeric|min:0',
             ]);
+
+            $discountAmount = 0;
+            if ($validated['discount_code'] ?? null) {
+                $discount = Discount::where('code', $validated['discount_code'])->first();
+
+                if (!$discount || !$discount->is_active || $discount->start_date > now() || ($discount->end_date && $discount->end_date < now())) {
+                    throw new \RuntimeException('Kode diskon tidak valid atau sudah tidak berlaku.');
+                }
+
+                if ($discount->max_usage && $discount->usage_count >= $discount->max_usage) {
+                    throw new \RuntimeException('Batas penggunaan kode diskon sudah tercapai.');
+                }
+
+                if ($validated['subtotal'] < $discount->min_purchase) {
+                    throw new \RuntimeException("Minimal pembelian adalah {$discount->min_purchase}.");
+                }
+
+                $discountAmount = $discount->type === 'percentage'
+                    ? ($validated['subtotal'] * $discount->value) / 100
+                    : $discount->value;
+                if ($discount->type === 'percentage' && $discount->max_discount) {
+                    $discountAmount = min($discountAmount, $discount->max_discount);
+                }
+            } elseif ((float) $validated['discount_amount'] > 0) {
+                throw new \RuntimeException('Kode diskon wajib dikirim untuk menggunakan potongan harga.');
+            }
+
+            $totalAmount = max($validated['subtotal'] - $discountAmount, 0);
 
             $products = Product::whereIn('id', collect($validated['items'])->pluck('product_id')->unique())
                 ->lockForUpdate()
@@ -99,8 +129,8 @@ class TransactionController extends Controller
                     : null,
                 'transaction_date' => $validated['transaction_date'],
                 'subtotal' => $validated['subtotal'],
-                'discount_amount' => $validated['discount_amount'],
-                'total_amount' => $validated['total_amount'],
+                'discount_amount' => $discountAmount,
+                'total_amount' => $totalAmount,
                 'payment_method' => $validated['payment_method'],
                 'status' => $validated['status'] ?? 'completed',
                 'notes' => $validated['notes'] ?? null,

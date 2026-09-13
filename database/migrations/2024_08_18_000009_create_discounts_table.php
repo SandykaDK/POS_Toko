@@ -22,8 +22,8 @@ return new class extends Migration
             $table->decimal('min_purchase', 12, 2)->default(0);
             $table->integer('max_usage')->nullable();
             $table->integer('usage_count')->default(0);
-            $table->datetime('start_date');
-            $table->datetime('end_date')->nullable();
+            $table->date('start_date');
+            $table->date('end_date')->nullable();
             $table->boolean('is_active')->default(true);
             $table->timestamps();
             $table->softDeletes();

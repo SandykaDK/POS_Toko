@@ -90,7 +90,11 @@ export function Discounts() {
     };
 
     const handleEdit = (discount) => {
-        setFormData(discount);
+        setFormData({
+            ...discount,
+            start_date: discount.start_date ? String(discount.start_date).slice(0, 10) : '',
+            end_date: discount.end_date ? String(discount.end_date).slice(0, 10) : '',
+        });
         setEditingId(discount.id);
         setShowForm(true);
     };
@@ -166,7 +170,7 @@ export function Discounts() {
             minWidth: 110,
             flex: 0.8,
             valueGetter: (_value, row) => view === 'trashed' ? 'Terhapus' : (row.is_active ? 'Aktif' : 'Nonaktif'),
-            renderCell: (params) => React.createElement('span', { className: `category-status ${view === 'trashed' ? 'deleted' : (params.row.is_active ? 'active' : 'inactive')}` }, params.value),
+            renderCell: (params) => React.createElement('span', { className: `category-status discount-status ${view === 'trashed' ? 'deleted' : (params.row.is_active ? 'active' : 'inactive')}` }, params.value),
         },
         {
             field: 'actions',
@@ -213,8 +217,9 @@ export function Discounts() {
                           React.createElement(
                               'div',
                               { className: 'form-group discount-field-half' },
-                              React.createElement('label', null, 'Kode Diskon'),
+                              React.createElement('label', { htmlFor: 'discount_code' }, 'Kode Diskon'),
                               React.createElement('input', {
+                                  id: 'discount_code',
                                   type: 'text',
                                   value: formData.code,
                                   onChange: (e) => setFormData({ ...formData, code: e.target.value.toUpperCase() }),
@@ -224,8 +229,9 @@ export function Discounts() {
                           React.createElement(
                               'div',
                               { className: 'form-group discount-field-half' },
-                              React.createElement('label', null, 'Nama Diskon'),
+                              React.createElement('label', { htmlFor: 'discount_name' }, 'Nama Diskon'),
                               React.createElement('input', {
+                                  id: 'discount_name',
                                   type: 'text',
                                   value: formData.name,
                                   onChange: (e) => setFormData({ ...formData, name: e.target.value }),
@@ -235,8 +241,9 @@ export function Discounts() {
                           React.createElement(
                               'div',
                               { className: 'form-group discount-field-full' },
-                              React.createElement('label', null, 'Deskripsi'),
+                              React.createElement('label', { htmlFor: 'discount_description' }, 'Deskripsi'),
                               React.createElement('textarea', {
+                                  id: 'discount_description',
                                   value: formData.description,
                                   onChange: (e) => setFormData({ ...formData, description: e.target.value }),
                                   rows: 2,
@@ -245,10 +252,11 @@ export function Discounts() {
                           React.createElement(
                               'div',
                               { className: 'form-group discount-field-quarter' },
-                              React.createElement('label', null, 'Tipe Diskon'),
+                              React.createElement('label', { htmlFor: 'discount_type' }, 'Tipe Diskon'),
                               React.createElement(
                                   'select',
                                   {
+                                      id: 'discount_type',
                                       value: formData.type,
                                       onChange: (e) => setFormData({ ...formData, type: e.target.value }),
                                   },
@@ -259,8 +267,9 @@ export function Discounts() {
                           React.createElement(
                               'div',
                               { className: 'form-group discount-field-quarter' },
-                              React.createElement('label', null, 'Nilai Diskon'),
+                              React.createElement('label', { htmlFor: 'discount_value' }, 'Nilai Diskon'),
                               React.createElement('input', {
+                                  id: 'discount_value',
                                   type: 'number',
                                   value: formData.value,
                                   onChange: (e) => setFormData({ ...formData, value: e.target.value }),
@@ -270,8 +279,9 @@ export function Discounts() {
                           React.createElement(
                               'div',
                               { className: 'form-group discount-field-quarter' },
-                              React.createElement('label', null, 'Diskon Maksimal'),
+                              React.createElement('label', { htmlFor: 'discount_max' }, 'Diskon Maksimal'),
                               React.createElement('input', {
+                                  id: 'discount_max',
                                   type: 'number',
                                   value: formData.max_discount,
                                   onChange: (e) => setFormData({ ...formData, max_discount: e.target.value }),
@@ -280,8 +290,9 @@ export function Discounts() {
                           React.createElement(
                               'div',
                               { className: 'form-group discount-field-quarter' },
-                              React.createElement('label', null, 'Pembelian Minimum'),
+                              React.createElement('label', { htmlFor: 'discount_min_purchase' }, 'Pembelian Minimum'),
                               React.createElement('input', {
+                                  id: 'discount_min_purchase',
                                   type: 'number',
                                   value: formData.min_purchase,
                                   onChange: (e) => setFormData({ ...formData, min_purchase: e.target.value }),
@@ -290,8 +301,9 @@ export function Discounts() {
                           React.createElement(
                               'div',
                               { className: 'form-group discount-field-quarter' },
-                              React.createElement('label', null, 'Maksimal Penggunaan'),
+                              React.createElement('label', { htmlFor: 'discount_max_usage' }, 'Maksimal Penggunaan'),
                               React.createElement('input', {
+                                  id: 'discount_max_usage',
                                   type: 'number',
                                   value: formData.max_usage,
                                   onChange: (e) => setFormData({ ...formData, max_usage: e.target.value }),
@@ -300,8 +312,9 @@ export function Discounts() {
                           React.createElement(
                               'div',
                               { className: 'form-group discount-field-quarter' },
-                              React.createElement('label', null, 'Tanggal Mulai'),
+                              React.createElement('label', { htmlFor: 'discount_start_date' }, 'Tanggal Mulai'),
                               React.createElement('input', {
+                                  id: 'discount_start_date',
                                   type: 'date',
                                   value: formData.start_date,
                                   onChange: (e) => setFormData({ ...formData, start_date: e.target.value }),
@@ -310,8 +323,9 @@ export function Discounts() {
                           React.createElement(
                               'div',
                               { className: 'form-group discount-field-quarter' },
-                              React.createElement('label', null, 'Tanggal Berakhir'),
+                              React.createElement('label', { htmlFor: 'discount_end_date' }, 'Tanggal Berakhir'),
                               React.createElement('input', {
+                                  id: 'discount_end_date',
                                   type: 'date',
                                   value: formData.end_date,
                                   onChange: (e) => setFormData({ ...formData, end_date: e.target.value }),

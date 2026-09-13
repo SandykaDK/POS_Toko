@@ -28,8 +28,8 @@ class Discount extends Model
         'value' => 'decimal:2',
         'max_discount' => 'decimal:2',
         'min_purchase' => 'decimal:2',
-        'start_date' => 'datetime',
-        'end_date' => 'datetime',
+        'start_date' => 'date:Y-m-d',
+        'end_date' => 'date:Y-m-d',
         'is_active' => 'boolean',
     ];
 }

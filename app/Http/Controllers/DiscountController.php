@@ -16,12 +16,16 @@ class DiscountController extends Controller
                     ->orWhere('code', 'like', "%{$search}%");
             })
             ->when(request()->filled('active'), function ($query) {
-                return $query->where('is_active', true)
-                    ->where('start_date', '<=', now())
-                    ->where(function ($q) {
-                        $q->whereNull('end_date')
-                            ->orWhere('end_date', '>=', now());
-                    });
+                if (request('active') === '1') {
+                    return $query->where('is_active', true)
+                        ->whereDate('start_date', '<=', today())
+                        ->where(function ($q) {
+                            $q->whereNull('end_date')
+                                ->orWhereDate('end_date', '>=', today());
+                        });
+                }
+
+                return $query->where('is_active', false);
             })
             ->paginate(request('per_page', 15));
 
@@ -136,14 +140,14 @@ class DiscountController extends Controller
             ], 422);
         }
 
-        if ($discount->start_date > now()) {
+        if ($discount->start_date->startOfDay()->gt(today()->startOfDay())) {
             return response()->json([
                 'success' => false,
                 'message' => 'Kode diskon belum berlaku'
             ], 422);
         }
 
-        if ($discount->end_date && $discount->end_date < now()) {
+        if ($discount->end_date && $discount->end_date->startOfDay()->lt(today()->startOfDay())) {
             return response()->json([
                 'success' => false,
                 'message' => 'Kode diskon sudah kedaluwarsa'

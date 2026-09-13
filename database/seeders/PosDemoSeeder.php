@@ -373,9 +373,9 @@ class PosDemoSeeder extends Seeder
             );
         }
 
-        Discount::firstOrCreate(
-            ['code' => 'SAVE10'],
+        $discounts = [
             [
+                'code' => 'SAVE10',
                 'name' => 'Diskon Awal Bulan',
                 'description' => 'Diskon 10% untuk pembelian di atas Rp50.000',
                 'type' => 'percentage',
@@ -383,11 +383,56 @@ class PosDemoSeeder extends Seeder
                 'max_discount' => 25000,
                 'min_purchase' => 50000,
                 'max_usage' => 100,
-                'usage_count' => 0,
                 'start_date' => now()->subDay(),
                 'end_date' => now()->addMonth(),
                 'is_active' => true,
-            ]
-        );
+            ],
+            [
+                'code' => 'HEMAT25',
+                'name' => 'Hemat Belanja',
+                'description' => 'Potongan Rp25.000 untuk pembelian di atas Rp150.000',
+                'type' => 'fixed',
+                'value' => 25000,
+                'max_discount' => null,
+                'min_purchase' => 150000,
+                'max_usage' => 50,
+                'start_date' => now()->subDay(),
+                'end_date' => now()->addMonth(),
+                'is_active' => true,
+            ],
+            [
+                'code' => 'OLD15',
+                'name' => 'Diskon Lama',
+                'description' => 'Diskon 15% yang sedang dinonaktifkan',
+                'type' => 'percentage',
+                'value' => 15,
+                'max_discount' => 30000,
+                'min_purchase' => 75000,
+                'max_usage' => 100,
+                'start_date' => now()->subMonth(),
+                'end_date' => now()->addMonth(),
+                'is_active' => false,
+            ],
+            [
+                'code' => 'FLASH50',
+                'name' => 'Flash Sale',
+                'description' => 'Potongan Rp50.000 yang sedang dinonaktifkan',
+                'type' => 'fixed',
+                'value' => 50000,
+                'max_discount' => null,
+                'min_purchase' => 250000,
+                'max_usage' => 25,
+                'start_date' => now()->subDay(),
+                'end_date' => now()->addMonth(),
+                'is_active' => false,
+            ],
+        ];
+
+        foreach ($discounts as $discountData) {
+            Discount::updateOrCreate(
+                ['code' => $discountData['code']],
+                array_merge($discountData, ['usage_count' => 0])
+            );
+        }
     }
 }

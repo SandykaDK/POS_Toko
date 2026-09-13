@@ -38,6 +38,14 @@ export function Cashier() {
     useEffect(() => {
         loadData();
     }, []);
+
+    useEffect(() => {
+        if (discountResult) {
+            setDiscountResult(null);
+            setMessage({ type: 'error', text: 'Subtotal berubah. Silakan cek ulang kode diskon.' });
+        }
+    }, [subtotal]);
+
     const loadData = async () => {
         try {
             setLoading(true);
@@ -121,6 +129,7 @@ export function Cashier() {
                 invoice_number: `INV-${Date.now()}`,
                 user_id: 1,
                 customer_id: selectedCustomerId ? Number(selectedCustomerId) : null,
+                discount_code: discountCode.trim() || null,
                 transaction_date: getLocalDateTime(),
                 subtotal,
                 discount_amount: discountAmount,
