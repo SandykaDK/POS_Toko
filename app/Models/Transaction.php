@@ -15,6 +15,7 @@ class Transaction extends Model
         'invoice_number',
         'user_id',
         'customer_id',
+        'customer_name',
         'transaction_date',
         'subtotal',
         'discount_amount',

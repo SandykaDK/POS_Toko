@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Transaction;
 use App\Models\TransactionItem;
 use App\Models\Product;
+use App\Models\Customer;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
@@ -93,6 +94,9 @@ class TransactionController extends Controller
                 'invoice_number' => $validated['invoice_number'],
                 'user_id' => $validated['user_id'],
                 'customer_id' => $validated['customer_id'] ?? null,
+                'customer_name' => $validated['customer_id']
+                    ? Customer::findOrFail($validated['customer_id'])->name
+                    : null,
                 'transaction_date' => $validated['transaction_date'],
                 'subtotal' => $validated['subtotal'],
                 'discount_amount' => $validated['discount_amount'],

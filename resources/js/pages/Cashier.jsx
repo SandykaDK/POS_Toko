@@ -5,6 +5,8 @@ import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import { AlertPopup } from '../components/AlertPopup.jsx';
 import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
+import TextField from '@mui/material/TextField';
+import Autocomplete from '@mui/material/Autocomplete';
 
 const getLocalDateTime = () => {
     const date = new Date();
@@ -16,6 +18,7 @@ const getLocalDateTime = () => {
 export function Cashier() {
     const [products, setProducts] = useState([]);
     const [categories, setCategories] = useState([]);
+    const [customers, setCustomers] = useState([]);
     const [selectedCategory, setSelectedCategory] = useState('all');
     const [productSearch, setProductSearch] = useState('');
     const [cart, setCart] = useState([]);
@@ -23,6 +26,7 @@ export function Cashier() {
     const [discountResult, setDiscountResult] = useState(null);
     const [message, setMessage] = useState({ type: '', text: '' });
     const [loading, setLoading] = useState(true);
+    const [selectedCustomerId, setSelectedCustomerId] = useState('');
 
     const subtotal = useMemo(
         () => cart.reduce((sum, item) => sum + item.quantity * item.selling_price, 0),
@@ -34,17 +38,18 @@ export function Cashier() {
     useEffect(() => {
         loadData();
     }, []);
-
     const loadData = async () => {
         try {
             setLoading(true);
-            const [productsRes, categoriesRes] = await Promise.all([
+            const [productsRes, categoriesRes, customersRes] = await Promise.all([
                 fetchList('products', 1, 100, { active: true }),
                 fetchList('categories', 1, 100),
+                fetchList('customers', 1, 100, { status: 'active' }),
             ]);
 
             setProducts(productsRes.data || []);
             setCategories(categoriesRes.data || []);
+            setCustomers(customersRes.data || []);
         } catch (error) {
             setMessage({ type: 'error', text: error.message });
         } finally {
@@ -72,7 +77,7 @@ export function Cashier() {
                     item.id === productId
                         ? { ...item, quantity: Math.max(0, item.quantity + delta) }
                         : item,
-                )
+                    )
                 .filter((item) => item.quantity > 0),
         );
     };
@@ -106,11 +111,16 @@ export function Cashier() {
             return;
         }
 
+        if (!selectedCustomerId) {
+            setMessage({ type: 'error', text: 'Silakan pilih pelanggan sebelum checkout.' });
+            return;
+        }
+
         try {
             const transactionPayload = {
                 invoice_number: `INV-${Date.now()}`,
                 user_id: 1,
-                customer_id: null,
+                customer_id: selectedCustomerId ? Number(selectedCustomerId) : null,
                 transaction_date: getLocalDateTime(),
                 subtotal,
                 discount_amount: discountAmount,
@@ -133,6 +143,7 @@ export function Cashier() {
             setCart([]);
             setDiscountCode('');
             setDiscountResult(null);
+            setSelectedCustomerId('');
             setMessage({ type: 'success', text: `Transaksi ${result.data.invoice_number} berhasil disimpan.` });
         } catch (error) {
             setMessage({ type: 'error', text: error.message });
@@ -285,6 +296,26 @@ export function Cashier() {
                             placeholder: 'Kode diskon',
                         }),
                         React.createElement('button', { className: 'pill secondary', type: 'button', onClick: applyDiscount }, 'Cek'),
+                    ),
+                    React.createElement(
+                        'label',
+                        { className: 'customer-select' },
+                        React.createElement('span', null, 'Pelanggan'),
+                        React.createElement(
+                            Autocomplete,
+                            {
+                                className: 'customer-autocomplete',
+                                options: customers,
+                                value: customers.find((customer) => String(customer.id) === String(selectedCustomerId)) || null,
+                                onChange: (_event, customer) => setSelectedCustomerId(customer ? String(customer.id) : ''),
+                                getOptionLabel: (customer) => customer ? `${customer.name} - ${customer.phone}` : '',
+                                isOptionEqualToValue: (option, value) => option.id === value.id,
+                                clearOnEscape: true,
+                                fullWidth: true,
+                                noOptionsText: 'Pelanggan tidak ditemukan',
+                                renderInput: (params) => React.createElement(TextField, { ...params, placeholder: 'Cari pelanggan...' }),
+                            },
+                        ),
                     ),
                     React.createElement(
                         'div',

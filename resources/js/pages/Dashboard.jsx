@@ -144,7 +144,7 @@ export function Dashboard() {
                 recentTransactions.length
                     ? React.createElement('div', { className: 'recent-transactions-list' }, recentTransactions.map((transaction) => React.createElement('div', { className: 'recent-transaction-row', key: transaction.id },
                         React.createElement('div', { className: 'recent-transaction-icon' }, React.createElement(ClockIcon, { 'aria-hidden': 'true' })),
-                        React.createElement('div', { className: 'recent-transaction-info' }, React.createElement('strong', null, transaction.invoice_number), React.createElement('span', null, transaction.customer?.name || 'Pelanggan umum'), React.createElement('small', null, formatDateTime(transaction.transaction_date))),
+                        React.createElement('div', { className: 'recent-transaction-info' }, React.createElement('strong', null, transaction.invoice_number), React.createElement('span', null, transaction.customer_name || transaction.customer?.name || 'Pelanggan umum'), React.createElement('small', null, formatDateTime(transaction.transaction_date))),
                         React.createElement('strong', { className: 'recent-transaction-amount' }, money(transaction.total_amount)),
                     )))
                     : React.createElement('div', { className: 'dashboard-empty' }, 'Belum ada transaksi.'),

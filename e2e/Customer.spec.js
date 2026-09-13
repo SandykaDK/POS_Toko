@@ -226,5 +226,173 @@ for (const field of requiredFields) {
   });
 }
 
+test('Edit Customers - Success', async ({ page }) =>{
+    const customerRow = page.getByRole('row').filter({ hasText: 'Pelanggan Umum' });
+    const customerEdited = page.getByRole('row').filter({ hasText: 'Pelanggan Baru' });
 
+    const newCustomerName = 'Pelanggan Baru'
+    const newCustomerEmail = 'pelangganbaru@tokopos.net'
+    const newCustomerPhone = '089927782718'
+    const newCustomerAddress = 'Alamat baru'
 
+    await expect(customerRow).toHaveCount(1);
+    await customerRow.getByRole('button', { name: 'Edit Pelanggan' }).click();
+    await expect(page.getByRole('heading', { level: 2, name: 'Edit Pelanggan' })).toBeVisible();
+
+    await expect(page.getByRole('textbox', { name: 'Nama' })).toHaveValue('Pelanggan Umum');
+    await page.getByRole('textbox', { name: 'Nama' }).fill(newCustomerName);
+
+    await expect(page.getByRole('textbox', { name: 'Email' })).toHaveValue('pelanggan@tokopos.test');
+    await page.getByRole('textbox', { name: 'Email' }).fill(newCustomerEmail);
+
+    await expect(page.getByRole('spinbutton', { name: 'Telepon' })).toHaveValue('081122334455');
+    await page.getByRole('spinbutton', { name: 'Telepon' }).fill(newCustomerPhone);
+
+    await expect(page.getByRole('textbox', { name: 'Alamat' })).toHaveValue('Jl. Raya No. 1');
+    await page.getByRole('textbox', { name: 'Alamat' }).fill(newCustomerAddress);
+
+    await expect(page.getByRole('checkbox', { name: 'Aktif' })).toBeChecked();
+    await page.getByRole('checkbox', { name: 'Aktif' }).check();
+
+    await page.getByRole('button', { name: 'Simpan Perubahan' }).click()
+
+    await expect(customerEdited).toHaveCount(1)
+    await customerEdited.getByRole('button', { name: 'Edit Pelanggan' }).click();
+    await expect(page.getByRole('textbox', { name: 'Nama' })).toHaveValue(newCustomerName);
+    await expect(page.getByRole('textbox', { name: 'Email' })).toHaveValue(newCustomerEmail);
+    await expect(page.getByRole('spinbutton', { name: 'Telepon' })).toHaveValue(newCustomerPhone);
+    await expect(page.getByRole('textbox', { name: 'Alamat' })).toHaveValue(newCustomerAddress);
+    await expect(page.getByRole('checkbox', { name: 'Aktif' })).toBeChecked();
+});
+
+test('Edit Customers - Failed (duplicate entry)', async ({ page }) =>{
+    const customerRow = page.getByRole('row').filter({ hasText: 'Gita Permata' });
+
+    const newCustomerName = 'Citra Lestari'
+    const newCustomerEmail = 'citra@tokopos.test'
+    const newCustomerPhone = '081122334458'
+    const newCustomerAddress = 'Jl. Mawar No. 14'
+
+    await expect(customerRow).toHaveCount(1);
+    await customerRow.getByRole('button', { name: 'Edit Pelanggan' }).click();
+    await expect(page.getByRole('heading', { level: 2, name: 'Edit Pelanggan' })).toBeVisible();
+
+    await expect(page.getByRole('textbox', { name: 'Nama' })).toHaveValue('Gita Permata');
+    await page.getByRole('textbox', { name: 'Nama' }).fill(newCustomerName);
+
+    await expect(page.getByRole('textbox', { name: 'Email' })).toHaveValue('gita@tokopos.test');
+    await page.getByRole('textbox', { name: 'Email' }).fill(newCustomerEmail);
+
+    await expect(page.getByRole('spinbutton', { name: 'Telepon' })).toHaveValue('081122334462');
+    await page.getByRole('spinbutton', { name: 'Telepon' }).fill(newCustomerPhone);
+
+    await expect(page.getByRole('textbox', { name: 'Alamat' })).toHaveValue('Jl. Dahlia No. 5');
+    await page.getByRole('textbox', { name: 'Alamat' }).fill(newCustomerAddress);
+
+    await expect(page.getByRole('checkbox', { name: 'Aktif' })).not.toBeChecked();
+    await page.getByRole('checkbox', { name: 'Aktif' }).check();
+
+    await page.getByRole('button', { name: 'Simpan Perubahan' }).click();
+
+    await expect(page.getByRole('alert')).toContainText('Email sudah digunakan. Telepon sudah digunakan.');
+});
+
+test('Delete Customers - Success', async ({ page }) =>{
+    const categoryRow = page.getByRole('row').filter({ hasText: 'Gita Permata' })
+
+    await expect(categoryRow).toHaveCount(1)
+    await categoryRow.getByRole('button', { name: 'Hapus Kategori' }).click()
+
+    await expect(page.getByRole('heading', { level: 2, name: 'Hapus kategori?' })).toBeVisible()
+    await page.getByRole('alertdialog').getByRole('button', { name: 'Hapus kategori', exact: true }).click()
+});
+
+test('Open tab Terhapus', async ({ page }) => {
+    const tabTerhapus = page.getByRole('button', { name: 'Terhapus' });
+    const rows = page.locator('.MuiDataGrid-row');
+
+    await expect(tabTerhapus).toBeVisible();
+    await (tabTerhapus).click();
+
+    await expect(page.getByRole('heading', { level: 1, name: 'Data Pelanggan' })).toBeVisible();
+    await expect(page.getByRole('searchbox', { name: 'Cari Pelanggan' })).toBeVisible();
+    await expect(page.getByRole('combobox', { name: 'Status' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Tambah' })).toBeVisible();
+
+    await expect(page.getByRole('columnheader', { name: 'Nama' })).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: 'Email' })).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: 'Telepon' })).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: 'Alamat' })).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: 'Status' })).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: 'Aksi' })).toBeVisible();
+
+    const rowCount = await rows.count();
+    expect(rowCount).toBeGreaterThan(0);
+
+    for (let i=0; i<rowCount; i++){
+        const row = rows.nth(i);
+        await expect(row.getByRole('button', { name: 'Pulihkan pelanggan' })).toBeVisible();
+        await expect(row.getByRole('button', { name: 'Hapus permanen' })).toBeVisible();
+    }
+
+    await expect(page.getByRole('combobox', {name: 'Rows per page:'})).toBeVisible();
+    await expect(page.getByRole('combobox', {name: 'Rows per page:'})).toHaveText('10');
+    await expect(page.getByRole('button', {name: 'Go to previous page',})).toBeVisible();
+    await expect(page.getByRole('button', {name: 'Go to next page'})).toBeVisible();
+});
+
+test('Restore category data', async ({ page }) =>{
+    const tabTerhapus = page.getByRole('button', { name: 'Terhapus' });
+    const rows = page.locator('.MuiDataGrid-row');
+    const categoryRow = page.getByRole('row').filter({ hasText: 'Pelanggan Terhapus 1' })
+
+    await expect(tabTerhapus).toBeVisible();
+    await (tabTerhapus).click();
+
+    await expect(rows.first()).toBeVisible();
+    const rowCount = await rows.count();
+    expect(rowCount).toBeGreaterThan(0);
+
+    for (let i=0; i<rowCount; i++){
+        const row = rows.nth(i);
+        await expect(row.getByRole('button', { name: 'Pulihkan pelanggan' })).toBeVisible();
+        await expect(row.getByRole('button', { name: 'Hapus permanen' })).toBeVisible();
+    }
+
+    await categoryRow.getByRole('button', { name: 'Pulihkan pelanggan' }).click();
+
+    const dialog = page.getByRole('alertdialog');
+    await expect(dialog).toBeVisible();
+    await expect(dialog).toContainText('Pelanggan ini akan kembali muncul di daftar pelanggan aktif.');
+
+    await dialog.getByRole('button', { name: 'Pulihkan pelanggan' }).click();
+    await expect(page.getByRole('alert')).toContainText('Pelanggan berhasil dipulihkan.');
+});
+
+test('Delete data permanently', async ({ page }) =>{
+    const tabTerhapus = page.getByRole('button', { name: 'Terhapus' });
+    const rows = page.locator('.MuiDataGrid-row');
+    const pelangganRow = page.getByRole('row').filter({ hasText: 'Pelanggan Terhapus 2' })
+
+    await expect(tabTerhapus).toBeVisible();
+    await (tabTerhapus).click();
+
+    await expect(rows.first()).toBeVisible();
+    const rowCount = await rows.count();
+    expect(rowCount).toBeGreaterThan(0);
+
+    for (let i=0; i<rowCount; i++){
+        const row = rows.nth(i);
+        await expect(row.getByRole('button', { name: 'Pulihkan pelanggan' })).toBeVisible();
+        await expect(row.getByRole('button', { name: 'Hapus permanen' })).toBeVisible();
+    }
+
+    await pelangganRow.getByRole('button', { name: 'Hapus permanen' }).click();
+
+    const dialog = page.getByRole('alertdialog');
+    await expect(dialog).toBeVisible();
+    await expect(dialog).toContainText('Data pelanggan akan dihapus selamanya dan tidak dapat dipulihkan.');
+
+    await dialog.getByRole('button', { name: 'Hapus permanen' }).click();
+    await expect(page.getByRole('alert')).toContainText('Pelanggan dihapus permanen.');
+});

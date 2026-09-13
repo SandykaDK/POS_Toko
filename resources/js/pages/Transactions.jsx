@@ -99,6 +99,7 @@ export function Transactions() {
                             <div><span>No. Invoice</span><strong>${escapeHtml(transaction.invoice_number)}</strong></div>
                             <div><span>Tanggal</span><strong>${escapeHtml(formatDate(transaction.transaction_date))}</strong></div>
                             <div><span>Kasir</span><strong>${escapeHtml(transaction.user?.name || 'Admin')}</strong></div>
+                            <div><span>Pelanggan</span><strong>${escapeHtml(transaction.customer_name || transaction.customer?.name || 'Pelanggan umum')}</strong></div>
                         </div>
                         <div class="divider"></div>
                         ${itemRows || '<div class="no-items">Tidak ada rincian barang</div>'}
@@ -163,6 +164,7 @@ export function Transactions() {
                                     'tr',
                                     null,
                                     React.createElement('th', null, 'Invoice'),
+                                    React.createElement('th', null, 'Pelanggan'),
                                     React.createElement('th', null, 'Tanggal & Jam'),
                                     React.createElement('th', null, 'Total'),
                                     React.createElement('th', null, 'Diskon'),
@@ -179,6 +181,7 @@ export function Transactions() {
                                         'tr',
                                         { key: transaction.id },
                                         React.createElement('td', null, React.createElement('strong', null, transaction.invoice_number)),
+                                        React.createElement('td', null, transaction.customer_name || transaction.customer?.name || 'Pelanggan umum'),
                                         React.createElement('td', null, React.createElement('div', { className: 'transaction-date' }, React.createElement('span', null, formatDate(transaction.transaction_date)), React.createElement('small', null, formatTime(transaction.transaction_date)))),
                                         React.createElement('td', null, money(transaction.total_amount)),
                                         React.createElement('td', null, money(transaction.discount_amount)),
@@ -215,6 +218,7 @@ export function Transactions() {
                           React.createElement('div', null, React.createElement('span', null, 'Tanggal'), React.createElement('strong', null, formatDate(selectedTransaction.transaction_date))),
                           React.createElement('div', null, React.createElement('span', null, 'Jam'), React.createElement('strong', null, formatTime(selectedTransaction.transaction_date))),
                           React.createElement('div', null, React.createElement('span', null, 'Metode pembayaran'), React.createElement('strong', null, selectedTransaction.payment_method)),
+                          React.createElement('div', null, React.createElement('span', null, 'Pelanggan'), React.createElement('strong', null, selectedTransaction.customer_name || selectedTransaction.customer?.name || 'Pelanggan umum')),
                           React.createElement('div', null, React.createElement('span', null, 'Status'), React.createElement('strong', null, selectedTransaction.status === 'completed' ? 'Selesai' : 'Pending')),
                       ),
                       React.createElement('h3', { className: 'transaction-detail-section-title' }, 'Item yang dibeli'),

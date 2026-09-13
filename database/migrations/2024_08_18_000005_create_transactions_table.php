@@ -16,6 +16,7 @@ return new class extends Migration
             $table->string('invoice_number', 50)->unique();
             $table->foreignId('user_id')->constrained()->onDelete('restrict');
             $table->foreignId('customer_id')->nullable()->constrained()->onDelete('set null');
+            $table->string('customer_name')->nullable();
             $table->datetime('transaction_date');
             $table->decimal('subtotal', 12, 2);
             $table->decimal('discount_amount', 12, 2)->default(0);
