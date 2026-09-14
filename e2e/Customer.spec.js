@@ -300,11 +300,12 @@ test('Edit Customers - Failed (duplicate entry)', async ({ page }) =>{
 test('Delete Customers - Success', async ({ page }) =>{
     const categoryRow = page.getByRole('row').filter({ hasText: 'Gita Permata' })
 
-    await expect(categoryRow).toHaveCount(1)
-    await categoryRow.getByRole('button', { name: 'Hapus Kategori' }).click()
+    await expect(categoryRow).toHaveCount(1);
+    await categoryRow.getByRole('button', { name: 'Hapus Kategori' }).click();
 
-    await expect(page.getByRole('heading', { level: 2, name: 'Hapus kategori?' })).toBeVisible()
-    await page.getByRole('alertdialog').getByRole('button', { name: 'Hapus kategori', exact: true }).click()
+    await expect(page.getByRole('heading', { level: 2, name: 'Hapus kategori?' })).toBeVisible();
+    await page.getByRole('alertdialog').getByRole('button', { name: 'Hapus kategori', exact: true }).click();
+    await expect(page.getByRole('alert')).toContainText('Pelanggan berhasil dihapus.');
 });
 
 test('Open tab Terhapus', async ({ page }) => {

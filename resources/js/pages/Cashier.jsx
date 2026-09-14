@@ -5,6 +5,9 @@ import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import { AlertPopup } from '../components/AlertPopup.jsx';
 import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
+import FormControl from '@mui/material/FormControl';
+import MenuItem from '@mui/material/MenuItem';
+import Select from '@mui/material/Select';
 import TextField from '@mui/material/TextField';
 import Autocomplete from '@mui/material/Autocomplete';
 
@@ -27,6 +30,10 @@ export function Cashier() {
     const [message, setMessage] = useState({ type: '', text: '' });
     const [loading, setLoading] = useState(true);
     const [selectedCustomerId, setSelectedCustomerId] = useState('');
+    const [paymentMethod, setPaymentMethod] = useState('cash');
+    const [qrisPayment, setQrisPayment] = useState(null);
+    const [cashReceived, setCashReceived] = useState('');
+    const [cashPaymentModalOpen, setCashPaymentModalOpen] = useState(false);
 
     const subtotal = useMemo(
         () => cart.reduce((sum, item) => sum + item.quantity * item.selling_price, 0),
@@ -113,7 +120,7 @@ export function Cashier() {
         }
     };
 
-    const handleCheckout = async () => {
+    const handleCheckout = async (receivedAmount = null) => {
         if (!cart.length) {
             setMessage({ type: 'error', text: 'Keranjang masih kosong.' });
             return;
@@ -121,6 +128,18 @@ export function Cashier() {
 
         if (!selectedCustomerId) {
             setMessage({ type: 'error', text: 'Silakan pilih pelanggan sebelum checkout.' });
+            return;
+        }
+
+        if (paymentMethod === 'cash' && receivedAmount === null) {
+            setCashReceived('');
+            setCashPaymentModalOpen(true);
+            return;
+        }
+
+        const parsedCashReceived = paymentMethod === 'cash' ? Number(receivedAmount) : null;
+        if (paymentMethod === 'cash' && (!Number.isFinite(parsedCashReceived) || parsedCashReceived < total)) {
+            setMessage({ type: 'error', text: 'Jumlah uang dibayarkan harus sama dengan atau lebih dari total.' });
             return;
         }
 
@@ -134,8 +153,9 @@ export function Cashier() {
                 subtotal,
                 discount_amount: discountAmount,
                 total_amount: total,
-                payment_method: 'cash',
-                status: 'completed',
+                payment_method: paymentMethod,
+                cash_received: paymentMethod === 'cash' ? parsedCashReceived : null,
+                status: paymentMethod === 'qris' ? 'pending' : 'completed',
                 items: cart.map((item) => ({
                     product_id: item.id,
                     quantity: item.quantity,
@@ -149,11 +169,29 @@ export function Cashier() {
                 body: JSON.stringify(transactionPayload),
             });
 
+            const createdPayment = result.data.payments?.find((payment) => payment.payment_method === 'qris');
+            if (paymentMethod === 'qris' && createdPayment?.qr_code_data) {
+                setQrisPayment({
+                    invoice: result.data.invoice_number,
+                    amount: result.data.total_amount,
+                    qrCode: createdPayment.qr_code_data,
+                    expiresAt: createdPayment.expires_at,
+                });
+            }
+
             setCart([]);
             setDiscountCode('');
             setDiscountResult(null);
             setSelectedCustomerId('');
-            setMessage({ type: 'success', text: `Transaksi ${result.data.invoice_number} berhasil disimpan.` });
+            setPaymentMethod('cash');
+            setCashReceived('');
+            setCashPaymentModalOpen(false);
+            setMessage({
+                type: 'success',
+                text: paymentMethod === 'qris'
+                    ? `Transaksi ${result.data.invoice_number} menunggu konfirmasi pembayaran QRIS.`
+                    : `Transaksi ${result.data.invoice_number} berhasil disimpan.`,
+            });
         } catch (error) {
             setMessage({ type: 'error', text: error.message });
         }
@@ -327,6 +365,31 @@ export function Cashier() {
                         ),
                     ),
                     React.createElement(
+                        'label',
+                        { className: 'category-filter payment-method-select' },
+                        React.createElement('span', null, 'Metode Pembayaran'),
+                        React.createElement(
+                            FormControl,
+                            { size: 'small', fullWidth: true },
+                            React.createElement(
+                                Select,
+                                {
+                                    value: paymentMethod,
+                                    onChange: (event) => setPaymentMethod(event.target.value),
+                                    inputProps: { 'aria-label': 'Metode Pembayaran' },
+                                    sx: {
+                                        fontFamily: 'inherit',
+                                        fontSize: '14px',
+                                        fontWeight: 400,
+                                        lineHeight: 1.4,
+                                    },
+                                },
+                                React.createElement(MenuItem, { value: 'cash', sx: { fontFamily: 'inherit', fontSize: '14px', fontWeight: 400 } }, 'Cash'),
+                                React.createElement(MenuItem, { value: 'qris', sx: { fontFamily: 'inherit', fontSize: '14px', fontWeight: 400 } }, 'QRIS'),
+                            ),
+                        ),
+                    ),
+                    React.createElement(
                         'div',
                         { className: 'total-box' },
                         React.createElement(
@@ -350,7 +413,7 @@ export function Cashier() {
                     ),
                     React.createElement(
                         'button',
-                        { className: 'checkout-btn', type: 'button', onClick: handleCheckout },
+                        { className: 'checkout-btn', type: 'button', onClick: () => handleCheckout() },
                         'Checkout',
                     ),
                     message.text
@@ -359,5 +422,36 @@ export function Cashier() {
                 ),
             ),
         ),
+        qrisPayment
+            ? React.createElement(
+                  'div',
+                  { className: 'qris-overlay', role: 'presentation' },
+                  React.createElement(
+                      'div',
+                      { className: 'qris-modal', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'qris-title' },
+                      React.createElement('h2', { id: 'qris-title' }, 'Scan QRIS untuk Membayar'),
+                      React.createElement('p', null, `Invoice ${qrisPayment.invoice}`),
+                      React.createElement('img', { className: 'qris-code', src: qrisPayment.qrCode, alt: `QRIS pembayaran ${qrisPayment.invoice}` }),
+                      React.createElement('strong', { className: 'qris-amount' }, money(qrisPayment.amount)),
+                      React.createElement('p', { className: 'qris-hint' }, 'Selesaikan pembayaran melalui aplikasi pembayaran pelanggan. Status akan diperbarui otomatis setelah Midtrans mengirim konfirmasi.'),
+                      React.createElement('button', { className: 'pill secondary', type: 'button', onClick: () => setQrisPayment(null) }, 'Tutup'),
+                  ),
+              )
+            : null,
+                cashPaymentModalOpen
+                        ? React.createElement(
+                                    'div',
+                                    { className: 'cash-payment-overlay', role: 'presentation', onMouseDown: (event) => { if (event.target === event.currentTarget) setCashPaymentModalOpen(false); } },
+                                    React.createElement(
+                                            'div',
+                                            { className: 'cash-payment-modal', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'cash-payment-title' },
+                                            React.createElement('h2', { id: 'cash-payment-title' }, 'Pembayaran Cash'),
+                                            React.createElement('div', { className: 'cash-payment-total' }, React.createElement('span', null, 'Total yang harus dibayar'), React.createElement('strong', null, money(total))),
+                                            React.createElement('label', { className: 'cash-payment-field' }, React.createElement('span', null, 'Jumlah uang dibayarkan'), React.createElement('input', { type: 'number', min: total, step: '1', value: cashReceived, autoFocus: true, onChange: (event) => setCashReceived(event.target.value), onKeyDown: (event) => { if (event.key === 'Enter') handleCheckout(cashReceived); }, placeholder: 'Masukkan nominal' })),
+                                            React.createElement('div', { className: 'cash-payment-change' }, React.createElement('span', null, 'Kembalian'), React.createElement('strong', null, money(Math.max(Number(cashReceived || 0) - total, 0)))),
+                                            React.createElement('div', { className: 'cash-payment-actions' }, React.createElement('button', { className: 'pill secondary', type: 'button', onClick: () => setCashPaymentModalOpen(false) }, 'Batal'), React.createElement('button', { className: 'checkout-btn', type: 'button', onClick: () => handleCheckout(cashReceived) }, 'Simpan Transaksi')),
+                                    ),
+                            )
+                        : null,
     );
 }

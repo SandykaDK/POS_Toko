@@ -374,6 +374,7 @@ export function Products() {
                                   id: 'unit',
                                   value: formData.unit,
                                   onChange: (e) => setFormData({ ...formData, unit: e.target.value }),
+                                  required: true,
                               },
                               React.createElement('option', null, 'pcs'),
                               React.createElement('option', null, 'box'),

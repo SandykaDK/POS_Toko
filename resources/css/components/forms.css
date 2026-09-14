@@ -74,6 +74,12 @@ form {
     color: #333;
 }
 
+.form-group:not(.checkbox):has(input[required], select[required], textarea[required]) > label::after {
+    content: ' *';
+    color: #dc2626;
+    font-weight: 700;
+}
+
 .form-group input[type='text'],
 .form-group input[type='email'],
 .form-group input[type='tel'],

@@ -20,6 +20,8 @@ class Transaction extends Model
         'subtotal',
         'discount_amount',
         'total_amount',
+        'cash_received',
+        'change_amount',
         'payment_method',
         'status',
         'notes',
@@ -30,6 +32,8 @@ class Transaction extends Model
         'subtotal' => 'decimal:2',
         'discount_amount' => 'decimal:2',
         'total_amount' => 'decimal:2',
+        'cash_received' => 'decimal:2',
+        'change_amount' => 'decimal:2',
     ];
 
     public function user(): BelongsTo

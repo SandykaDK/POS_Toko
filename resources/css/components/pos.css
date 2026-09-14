@@ -102,6 +102,10 @@
     color: var(--muted);
 }
 
+.payment-method-select {
+    margin-top: 0.75rem;
+}
+
 .empty-state strong {
     display: block;
     margin-bottom: 0.25rem;
@@ -122,4 +126,149 @@
 
 .dot.low-stock {
     background: var(--danger);
+}
+
+.qris-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1200;
+    display: grid;
+    place-items: center;
+    padding: 1rem;
+    background: rgba(15, 23, 42, 0.58);
+}
+
+.qris-modal {
+    display: grid;
+    justify-items: center;
+    width: min(100%, 360px);
+    padding: 1.5rem;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: 0 22px 60px rgba(15, 23, 42, 0.24);
+    text-align: center;
+}
+
+.qris-modal h2 {
+    margin: 0;
+    color: var(--text);
+    font-size: 1.2rem;
+}
+
+.qris-modal p {
+    margin: 0.45rem 0;
+    color: var(--muted);
+    font-size: 0.85rem;
+}
+
+.qris-code {
+    width: 240px;
+    height: 240px;
+    margin: 0.75rem 0;
+    object-fit: contain;
+}
+
+.qris-amount {
+    color: var(--text);
+    font-size: 1.25rem;
+}
+
+.qris-hint {
+    max-width: 290px;
+    line-height: 1.5;
+}
+
+.cash-payment-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1200;
+    display: grid;
+    place-items: center;
+    padding: 1rem;
+    background: rgba(15, 23, 42, 0.58);
+}
+
+.cash-payment-modal {
+    display: grid;
+    gap: 1rem;
+    width: min(100%, 400px);
+    padding: 1.5rem;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: 0 22px 60px rgba(15, 23, 42, 0.24);
+}
+
+.cash-payment-modal h2 {
+    margin: 0;
+    color: var(--text);
+    font-size: 1.2rem;
+}
+
+.cash-payment-total,
+.cash-payment-change {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.cash-payment-total span,
+.cash-payment-change span {
+    color: var(--muted);
+    font-size: 0.85rem;
+}
+
+.cash-payment-total strong,
+.cash-payment-change strong {
+    color: var(--text);
+    font-size: 1.05rem;
+}
+
+.cash-payment-field {
+    display: grid;
+    gap: 0.4rem;
+    color: var(--muted);
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+.cash-payment-field input {
+    width: 100%;
+    min-height: 46px;
+    padding: 0.7rem 0.8rem;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    color: var(--text);
+    font: inherit;
+    font-size: 1rem;
+}
+
+.cash-payment-field input:focus {
+    border-color: var(--primary);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.cash-payment-change {
+    padding-top: 0.85rem;
+    border-top: 1px solid var(--line);
+}
+
+.cash-payment-change strong {
+    color: var(--success);
+    font-size: 1.25rem;
+}
+
+.cash-payment-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+}
+
+.cash-payment-actions .checkout-btn {
+    width: auto;
+    margin: 0;
+    padding: 0.7rem 1rem;
 }

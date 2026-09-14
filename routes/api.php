@@ -11,6 +11,7 @@ use App\Http\Controllers\AuthController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('auth/login', [AuthController::class, 'login'])->middleware('throttle:50,1');
+Route::post('payments/midtrans/notification', [PaymentController::class, 'midtransNotification']);
 
 Route::get('/health', function () {
     return response()->json([
@@ -28,6 +29,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Custom routes harus SEBELUM resource routes agar di-match terlebih dahulu
     Route::get('products/low-stock', [ProductController::class, 'lowStock']);
     Route::get('transactions/sales-report', [TransactionController::class, 'salesReport']);
+    Route::post('transactions/{transaction}/confirm-payment', [TransactionController::class, 'confirmPayment']);
     Route::get('transactions/{transaction}/items', [TransactionController::class, 'items']);
     Route::post('discounts/validate', [DiscountController::class, 'validateCode']);
 

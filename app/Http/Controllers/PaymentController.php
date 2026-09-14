@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Payment;
+use App\Models\Transaction;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
@@ -93,5 +94,52 @@ class PaymentController extends Controller
             'success' => true,
             'message' => 'Pembayaran berhasil dihapus'
         ]);
+    }
+
+    public function midtransNotification(Request $request): JsonResponse
+    {
+        $payload = $request->all();
+        $signature = hash('sha512', ($payload['order_id'] ?? '') . ($payload['status_code'] ?? '') . ($payload['gross_amount'] ?? '') . config('services.midtrans.server_key'));
+
+        if (empty($payload['signature_key']) || !hash_equals($signature, $payload['signature_key'])) {
+            return response()->json(['message' => 'Invalid signature.'], 403);
+        }
+
+        $transaction = Transaction::where('invoice_number', $payload['order_id'] ?? '')->first();
+        if (!$transaction) {
+            return response()->json(['message' => 'Transaction not found.'], 404);
+        }
+
+        $payment = Payment::query()
+            ->where('transaction_id', $transaction->id)
+            ->where('provider_transaction_id', $payload['transaction_id'] ?? '')
+            ->first();
+
+        if (!$payment) {
+            $payment = Payment::query()
+                ->where('transaction_id', $transaction->id)
+                ->where('payment_method', 'qris')
+                ->latest()
+                ->first();
+        }
+
+        if (!$payment) {
+            return response()->json(['message' => 'Payment not found.'], 404);
+        }
+
+        $status = $payload['transaction_status'] ?? 'pending';
+        if (in_array($status, ['settlement', 'capture'], true) && $transaction->status === 'pending') {
+            return app(TransactionController::class)->confirmPayment($transaction);
+        }
+
+        if (in_array($status, ['expire', 'deny', 'cancel'], true)) {
+            $payment->update([
+                'status' => 'failed',
+                'notes' => 'Pembayaran QRIS tidak berhasil: ' . $status,
+            ]);
+            $transaction->update(['status' => 'cancelled']);
+        }
+
+        return response()->json(['success' => true]);
     }
 }

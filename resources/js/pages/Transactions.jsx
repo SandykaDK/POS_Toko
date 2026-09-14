@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { money, formatDate, formatTime } from '../helpers.js';
-import { fetchList } from '../api.js';
+import { apiFetch, fetchList } from '../api.js';
 import { AlertPopup } from '../components/AlertPopup.jsx';
-import { ArrowDownTrayIcon, InformationCircleIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { ArrowDownTrayIcon, CheckCircleIcon, InformationCircleIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import Paper from '@mui/material/Paper';
+import { DataGrid } from '@mui/x-data-grid';
 
 const getLocalDate = () => {
     const date = new Date();
@@ -19,8 +21,10 @@ export function Transactions() {
     const today = getLocalDate();
     const [startDate, setStartDate] = useState(today);
     const [endDate, setEndDate] = useState(today);
+    const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 10 });
 
     useEffect(() => {
+        setPaginationModel((current) => ({ ...current, page: 0 }));
         loadData();
     }, [startDate, endDate]);
 
@@ -40,6 +44,16 @@ export function Transactions() {
             setMessage({ type: 'error', text: error.message });
         } finally {
             setLoading(false);
+        }
+    };
+
+    const confirmPayment = async (transaction) => {
+        try {
+            await apiFetch(`/transactions/${transaction.id}/confirm-payment`, { method: 'POST' });
+            setMessage({ type: 'success', text: 'Pembayaran QRIS berhasil dikonfirmasi.' });
+            await loadData();
+        } catch (error) {
+            setMessage({ type: 'error', text: error.message });
         }
     };
 
@@ -108,6 +122,7 @@ export function Transactions() {
                             <div><span>Subtotal</span><strong>${money(transaction.subtotal)}</strong></div>
                             <div><span>Diskon</span><strong>${money(transaction.discount_amount)}</strong></div>
                             <div><span>Pembayaran</span><strong>${escapeHtml(transaction.payment_method)}</strong></div>
+                            ${transaction.payment_method === 'cash' ? `<div><span>Dibayar</span><strong>${money(transaction.cash_received)}</strong></div><div><span>Kembalian</span><strong>${money(transaction.change_amount)}</strong></div>` : ''}
                             <div class="grand-total"><span>TOTAL</span><strong>${money(transaction.total_amount)}</strong></div>
                         </div>
                         <p class="thanks">Terima kasih telah berbelanja</p>
@@ -119,6 +134,89 @@ export function Transactions() {
         printWindow.focus();
         printWindow.print();
     };
+
+    const columns = [
+        {
+            field: 'invoice_number',
+            headerName: 'Invoice',
+            minWidth: 150,
+            flex: 1,
+            renderCell: (params) => React.createElement('strong', null, params.value),
+        },
+        {
+            field: 'customer_name',
+            headerName: 'Pelanggan',
+            minWidth: 170,
+            flex: 1.1,
+            valueGetter: (_value, row) => row.customer_name || row.customer?.name || 'Pelanggan umum',
+        },
+        {
+            field: 'transaction_date',
+            headerName: 'Tanggal & Jam',
+            minWidth: 150,
+            flex: 1,
+            renderCell: (params) =>
+            React.createElement(
+                    'div',
+                    { className: 'transaction-date', 'data-date': String(params.value).slice(0, 10) },
+                React.createElement(
+                    'span',
+                    null,
+                    formatDate(params.value)),
+                React.createElement(
+                    'small',
+                    null,
+                    formatTime(params.value))
+            ),
+        },
+        {
+            field: 'total_amount',
+            headerName: 'Total',
+            minWidth: 130,
+            flex: 0.9,
+            valueGetter: (_value, row) => Number(row.total_amount),
+            renderCell: (params) => money(params.value),
+        },
+        {
+            field: 'discount_amount',
+            headerName: 'Diskon',
+            minWidth: 130,
+            flex: 0.9,
+            valueGetter: (_value, row) => Number(row.discount_amount),
+            renderCell: (params) => money(params.value),
+        },
+        {
+            field: 'payment_method',
+            headerName: 'Metode',
+            minWidth: 120,
+            flex: 0.8,
+            renderCell: (params) => params.row.payment_method === 'qris' ? 'QRIS' : 'Cash',
+        },
+        {
+            field: 'status',
+            headerName: 'Status',
+            minWidth: 120,
+            flex: 0.8,
+            valueGetter: (_value, row) => row.status === 'completed' ? 'Selesai' : 'Pending',
+            renderCell: (params) => params.row.status === 'completed' ? '✓ Selesai' : '○ Pending',
+        },
+        {
+            field: 'actions',
+            headerName: 'Aksi',
+            minWidth: 165,
+            sortable: false,
+            filterable: false,
+            renderCell: (params) => React.createElement(
+                'div',
+                { className: 'action-buttons' },
+                params.row.status === 'pending'
+                    ? React.createElement('button', { className: 'btn-confirm', type: 'button', title: 'Konfirmasi pembayaran QRIS', 'aria-label': 'Konfirmasi pembayaran QRIS', onClick: () => confirmPayment(params.row) }, React.createElement(CheckCircleIcon, { 'aria-hidden': 'true' }))
+                    : null,
+                React.createElement('button', { className: 'btn-view', type: 'button', title: 'Lihat detail transaksi', 'aria-label': 'Lihat detail transaksi', onClick: () => setSelectedTransaction(params.row) }, React.createElement(InformationCircleIcon, { 'aria-hidden': 'true' })),
+                React.createElement('button', { className: 'btn-print', type: 'button', title: 'Cetak transaksi', 'aria-label': 'Cetak transaksi', onClick: () => printTransaction(params.row) }, React.createElement(ArrowDownTrayIcon, { 'aria-hidden': 'true' })),
+            ),
+        },
+    ];
 
     return React.createElement(
         React.Fragment,
@@ -137,67 +235,52 @@ export function Transactions() {
                 React.createElement(
                     'label',
                     null,
-                    React.createElement('span', null, 'Tanggal Awal'),
-                    React.createElement('input', { type: 'date', value: startDate, max: endDate, onChange: (event) => setStartDate(event.target.value) }),
+                    React.createElement('span', { htmlFor: 'startDate' }, 'Tanggal Awal'),
+                    React.createElement('input', {
+                        id: 'start-date',
+                        type: 'date',
+                        value: startDate,
+                        max: endDate,
+                        onChange: (event) => setStartDate(event.target.value) }),
                 ),
                 React.createElement(
                     'label',
                     null,
-                    React.createElement('span', null, 'Tanggal Akhir'),
-                    React.createElement('input', { type: 'date', value: endDate, min: startDate, onChange: (event) => setEndDate(event.target.value) }),
+                    React.createElement('span', { htmlFor: 'endDate' }, 'Tanggal Akhir'),
+                    React.createElement('input', {
+                        id: 'end-date',
+                        type: 'date',
+                        value: endDate,
+                        min: startDate,
+                        onChange: (event) => setEndDate(event.target.value) }),
                 ),
             ),
             loading
                 ? React.createElement('div', { className: 'empty-state' }, 'Memuat data...')
-                : transactions.length === 0
-                  ? React.createElement('div', { className: 'empty-state' }, 'Belum ada transaksi.')
-                  : React.createElement(
-                        'div',
-                        { className: 'table-container' },
-                        React.createElement(
-                            'table',
-                            { className: 'data-table category-data-table' },
-                            React.createElement(
-                                'thead',
-                                null,
-                                React.createElement(
-                                    'tr',
-                                    null,
-                                    React.createElement('th', null, 'Invoice'),
-                                    React.createElement('th', null, 'Pelanggan'),
-                                    React.createElement('th', null, 'Tanggal & Jam'),
-                                    React.createElement('th', null, 'Total'),
-                                    React.createElement('th', null, 'Diskon'),
-                                    React.createElement('th', null, 'Metode'),
-                                    React.createElement('th', null, 'Status'),
-                                    React.createElement('th', null, 'Aksi'),
-                                ),
-                            ),
-                            React.createElement(
-                                'tbody',
-                                null,
-                                transactions.map((transaction) =>
-                                    React.createElement(
-                                        'tr',
-                                        { key: transaction.id },
-                                        React.createElement('td', null, React.createElement('strong', null, transaction.invoice_number)),
-                                        React.createElement('td', null, transaction.customer_name || transaction.customer?.name || 'Pelanggan umum'),
-                                        React.createElement('td', null, React.createElement('div', { className: 'transaction-date' }, React.createElement('span', null, formatDate(transaction.transaction_date)), React.createElement('small', null, formatTime(transaction.transaction_date)))),
-                                        React.createElement('td', null, money(transaction.total_amount)),
-                                        React.createElement('td', null, money(transaction.discount_amount)),
-                                        React.createElement('td', null, transaction.payment_method),
-                                        React.createElement('td', null, transaction.status === 'completed' ? '✓ Selesai' : '○ Pending'),
-                                        React.createElement(
-                                            'td',
-                                            { className: 'action-buttons' },
-                                            React.createElement('button', { className: 'btn-view', type: 'button', title: 'Lihat detail transaksi', 'aria-label': 'Lihat detail transaksi', onClick: () => setSelectedTransaction(transaction) }, React.createElement(InformationCircleIcon, { 'aria-hidden': 'true' })),
-                                            React.createElement('button', { className: 'btn-print', type: 'button', title: 'Cetak transaksi', 'aria-label': 'Cetak transaksi', onClick: () => printTransaction(transaction) }, React.createElement(ArrowDownTrayIcon, { 'aria-hidden': 'true' })),
-                                        ),
-                                    ),
-                                ),
-                            ),
-                        ),
-                    ),
+                : React.createElement(
+                      Paper,
+                      { sx: { height: 'auto', width: '100%', boxShadow: 'none', borderRadius: 0 } },
+                      React.createElement(DataGrid, {
+                          rows: transactions,
+                          columns,
+                          loading,
+                          className: 'transaction-data-grid',
+                          paginationModel,
+                          onPaginationModelChange: setPaginationModel,
+                          pageSizeOptions: [5, 10, 25, 50],
+                          disableRowSelectionOnClick: true,
+                          autoHeight: true,
+                          rowHeight: 48,
+                          columnHeaderHeight: 56,
+                          sx: {
+                              border: 0,
+                              fontFamily: 'inherit',
+                              '& .MuiDataGrid-columnHeaders': { backgroundColor: '#f5f5f5' },
+                              '& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus': { outline: 'none' },
+                              '& .MuiDataGrid-cellContent': { fontFamily: 'inherit' },
+                          },
+                      }),
+                  ),
         ),
         selectedTransaction
             ? React.createElement(
@@ -206,6 +289,9 @@ export function Transactions() {
                   React.createElement(
                       'div',
                       { className: 'transaction-detail-modal', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'transaction-detail-title' },
+                      React.createElement(
+                          'div',
+                          { className: 'transaction-detail-scroll' },
                       React.createElement(
                           'div',
                           { className: 'transaction-detail-header' },
@@ -218,6 +304,12 @@ export function Transactions() {
                           React.createElement('div', null, React.createElement('span', null, 'Tanggal'), React.createElement('strong', null, formatDate(selectedTransaction.transaction_date))),
                           React.createElement('div', null, React.createElement('span', null, 'Jam'), React.createElement('strong', null, formatTime(selectedTransaction.transaction_date))),
                           React.createElement('div', null, React.createElement('span', null, 'Metode pembayaran'), React.createElement('strong', null, selectedTransaction.payment_method)),
+                          selectedTransaction.payment_method === 'cash'
+                              ? React.createElement(React.Fragment, null,
+                                  React.createElement('div', null, React.createElement('span', null, 'Jumlah dibayar'), React.createElement('strong', null, money(selectedTransaction.cash_received))),
+                                  React.createElement('div', null, React.createElement('span', null, 'Kembalian'), React.createElement('strong', null, money(selectedTransaction.change_amount))),
+                              )
+                              : null,
                           React.createElement('div', null, React.createElement('span', null, 'Pelanggan'), React.createElement('strong', null, selectedTransaction.customer_name || selectedTransaction.customer?.name || 'Pelanggan umum')),
                           React.createElement('div', null, React.createElement('span', null, 'Status'), React.createElement('strong', null, selectedTransaction.status === 'completed' ? 'Selesai' : 'Pending')),
                       ),
@@ -237,7 +329,14 @@ export function Transactions() {
                           { className: 'transaction-detail-summary' },
                           React.createElement('div', null, React.createElement('span', null, 'Subtotal'), React.createElement('strong', null, money(selectedTransaction.subtotal))),
                           React.createElement('div', null, React.createElement('span', null, 'Diskon'), React.createElement('strong', null, money(selectedTransaction.discount_amount))),
+                          selectedTransaction.payment_method === 'cash'
+                              ? React.createElement(React.Fragment, null,
+                                  React.createElement('div', null, React.createElement('span', null, 'Dibayar'), React.createElement('strong', null, money(selectedTransaction.cash_received))),
+                                  React.createElement('div', null, React.createElement('span', null, 'Kembalian'), React.createElement('strong', null, money(selectedTransaction.change_amount))),
+                              )
+                              : null,
                           React.createElement('div', { className: 'transaction-detail-total' }, React.createElement('span', null, 'Total'), React.createElement('strong', null, money(selectedTransaction.total_amount))),
+                      ),
                       ),
                   ),
               )

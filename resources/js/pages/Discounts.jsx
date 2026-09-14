@@ -259,7 +259,9 @@ export function Discounts() {
                                       id: 'discount_type',
                                       value: formData.type,
                                       onChange: (e) => setFormData({ ...formData, type: e.target.value }),
+                                      required: true,
                                   },
+                                      React.createElement('option', { value: '' }, 'Pilih Tipe Diskon'),
                                   React.createElement('option', { value: 'percentage' }, 'Persentase'),
                                   React.createElement('option', { value: 'fixed' }, 'Jumlah Tetap'),
                               ),
@@ -296,6 +298,7 @@ export function Discounts() {
                                   type: 'number',
                                   value: formData.min_purchase,
                                   onChange: (e) => setFormData({ ...formData, min_purchase: e.target.value }),
+                                  required: true,
                               }),
                           ),
                           React.createElement(
@@ -318,6 +321,7 @@ export function Discounts() {
                                   type: 'date',
                                   value: formData.start_date,
                                   onChange: (e) => setFormData({ ...formData, start_date: e.target.value }),
+                                  required: true,
                               }),
                           ),
                           React.createElement(

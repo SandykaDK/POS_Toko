@@ -21,6 +21,26 @@ Laravel is a web application framework with expressive, elegant syntax. We belie
 
 Laravel is accessible, powerful, and provides tools required for large, robust applications.
 
+## Midtrans QRIS Sandbox
+
+QRIS dinamis memakai Midtrans Core API. Tambahkan konfigurasi berikut ke `.env` menggunakan credential sandbox:
+
+```env
+MIDTRANS_SERVER_KEY=SB-Mid-server-...
+MIDTRANS_CLIENT_KEY=SB-Mid-client-...
+MIDTRANS_BASE_URL=https://api.sandbox.midtrans.com
+MIDTRANS_QRIS_ACQUIRER=gopay
+MIDTRANS_QRIS_EXPIRY_MINUTES=15
+```
+
+Jalankan migration setelah konfigurasi:
+
+```bash
+php artisan migrate
+```
+
+Daftarkan webhook Midtrans ke `https://alamat-aplikasi.test/api/payments/midtrans/notification`. Untuk pengembangan lokal, gunakan HTTPS tunnel yang dapat diakses Midtrans. Jangan masukkan Server Key ke frontend atau commit ke repository.
+
 ## Learning Laravel
 
 Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.

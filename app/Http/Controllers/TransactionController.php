@@ -7,6 +7,8 @@ use App\Models\TransactionItem;
 use App\Models\Product;
 use App\Models\Customer;
 use App\Models\Discount;
+use App\Models\Payment;
+use App\Services\MidtransQrisService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
@@ -61,7 +63,8 @@ class TransactionController extends Controller
                 'subtotal' => 'required|numeric|min:0',
                 'discount_amount' => 'required|numeric|min:0',
                 'total_amount' => 'required|numeric|min:0',
-                'payment_method' => 'required|string|max:50',
+                'payment_method' => 'required|in:cash,qris',
+                'cash_received' => 'nullable|numeric|min:0|required_if:payment_method,cash',
                 'status' => 'in:pending,completed,cancelled',
                 'notes' => 'nullable|string',
                 'items' => 'required|array|min:1',
@@ -98,6 +101,12 @@ class TransactionController extends Controller
             }
 
             $totalAmount = max($validated['subtotal'] - $discountAmount, 0);
+            $cashReceived = $validated['payment_method'] === 'cash' ? (float) $validated['cash_received'] : null;
+            if ($validated['payment_method'] === 'cash' && $cashReceived < $totalAmount) {
+                throw new \RuntimeException('Jumlah uang dibayarkan kurang dari total transaksi.');
+            }
+            $changeAmount = $cashReceived === null ? null : $cashReceived - $totalAmount;
+            $transactionStatus = $validated['payment_method'] === 'qris' ? 'pending' : 'completed';
 
             $products = Product::whereIn('id', collect($validated['items'])->pluck('product_id')->unique())
                 ->lockForUpdate()
@@ -131,9 +140,20 @@ class TransactionController extends Controller
                 'subtotal' => $validated['subtotal'],
                 'discount_amount' => $discountAmount,
                 'total_amount' => $totalAmount,
+                'cash_received' => $cashReceived,
+                'change_amount' => $changeAmount,
                 'payment_method' => $validated['payment_method'],
-                'status' => $validated['status'] ?? 'completed',
+                'status' => $transactionStatus,
                 'notes' => $validated['notes'] ?? null,
+            ]);
+
+            $payment = Payment::create([
+                'transaction_id' => $transaction->id,
+                'payment_method' => $validated['payment_method'],
+                'amount' => $totalAmount,
+                'status' => $transactionStatus === 'completed' ? 'success' : 'pending',
+                'payment_date' => $transactionStatus === 'completed' ? now() : null,
+                'notes' => $transactionStatus === 'completed' ? 'Pembayaran tunai diterima.' : 'Menunggu konfirmasi pembayaran QRIS.',
             ]);
 
             foreach ($validated['items'] as $item) {
@@ -146,13 +166,27 @@ class TransactionController extends Controller
                     'discount_per_item' => $item['discount_per_item'] ?? 0,
                     'subtotal' => ($item['quantity'] * $item['unit_price']) - ($item['discount_per_item'] ?? 0),
                 ]);
-
-                $products->get($item['product_id'])->decrement('stock', $item['quantity']);
             }
 
-            if ($transaction->customer) {
-                $transaction->customer->increment('purchase_count');
-                $transaction->customer->increment('total_purchases', $transaction->total_amount);
+            if ($transaction->status === 'completed') {
+                foreach ($requestedQuantities as $productId => $quantity) {
+                    $products->get($productId)->decrement('stock', (int) $quantity);
+                }
+
+                if ($transaction->customer) {
+                    $transaction->customer->increment('purchase_count');
+                    $transaction->customer->increment('total_purchases', $transaction->total_amount);
+                }
+            }
+
+            if ($transaction->payment_method === 'qris') {
+                $qris = app(MidtransQrisService::class)->charge($transaction->load('transactionItems'));
+                $payment->update([
+                    'provider' => 'midtrans',
+                    'provider_transaction_id' => $qris['provider_transaction_id'],
+                    'qr_code_data' => $qris['qr_code_data'],
+                    'expires_at' => $qris['expires_at'],
+                ]);
             }
 
             DB::commit();
@@ -160,7 +194,7 @@ class TransactionController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Transaksi berhasil dibuat',
-                'data' => $transaction->load('customer', 'user', 'transactionItems')
+                'data' => $transaction->load('customer', 'user', 'transactionItems', 'payments')
             ], 201);
         } catch (\Exception $e) {
             DB::rollback();
@@ -178,6 +212,75 @@ class TransactionController extends Controller
             'success' => true,
             'data' => $transaction->load('customer', 'user', 'transactionItems', 'payments')
         ]);
+    }
+
+    public function confirmPayment(Transaction $transaction): JsonResponse
+    {
+        try {
+            DB::beginTransaction();
+
+            if ($transaction->status !== 'pending') {
+                throw new \RuntimeException('Hanya transaksi pending yang dapat dikonfirmasi.');
+            }
+
+            $items = $transaction->transactionItems()->get();
+            $products = Product::withTrashed()
+                ->whereIn('id', $items->pluck('product_id')->unique())
+                ->lockForUpdate()
+                ->get()
+                ->keyBy('id');
+
+            foreach ($items->groupBy('product_id') as $productId => $productItems) {
+                $quantity = (int) $productItems->sum('quantity');
+                $product = $products->get($productId);
+
+                if (!$product || !$product->is_active) {
+                    throw new \RuntimeException('Produk transaksi sudah tidak aktif.');
+                }
+
+                if ($quantity > $product->stock) {
+                    throw new \RuntimeException("Stok produk {$product->name} tidak mencukupi.");
+                }
+
+                $product->decrement('stock', $quantity);
+            }
+
+            $payment = $transaction->payments()->where('status', 'pending')->latest()->first();
+            if (!$payment) {
+                $payment = Payment::create([
+                    'transaction_id' => $transaction->id,
+                    'payment_method' => $transaction->payment_method,
+                    'amount' => $transaction->total_amount,
+                ]);
+            }
+
+            $payment->update([
+                'status' => 'success',
+                'payment_date' => now(),
+                'notes' => 'Pembayaran QRIS dikonfirmasi.',
+            ]);
+            $transaction->update(['status' => 'completed']);
+
+            if ($transaction->customer) {
+                $transaction->customer->increment('purchase_count');
+                $transaction->customer->increment('total_purchases', $transaction->total_amount);
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Pembayaran QRIS berhasil dikonfirmasi.',
+                'data' => $transaction->load('customer', 'user', 'transactionItems', 'payments'),
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Konfirmasi pembayaran gagal: ' . $e->getMessage(),
+            ], 422);
+        }
     }
 
     public function update(Request $request, Transaction $transaction): JsonResponse
