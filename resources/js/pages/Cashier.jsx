@@ -274,7 +274,7 @@ export function Cashier() {
                                       React.createElement(
                                           'div',
                                           { className: 'product-meta' },
-                                          React.createElement('span', null, `Kode Produk: ${product.product_code}`),
+                                          React.createElement('span', null, `${product.product_code}`),
                                           React.createElement('span', null, `${product.stock} stok`),
                                       ),
                                       React.createElement(
