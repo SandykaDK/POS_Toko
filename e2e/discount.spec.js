@@ -1,12 +1,32 @@
 import { test, expect } from '@playwright/test';
 
+function dateOffset(days) {
+    const date = new Date();
+    date.setDate(date.getDate() + days);
+    const pad = (value) => String(value).padStart(2, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+async function getDiscountByCode(page, code) {
+    return page.evaluate(async (discountCode) => {
+        const response = await fetch('/api/discounts?page=1&per_page=100', {
+            headers: {
+                Accept: 'application/json',
+                Authorization: `Bearer ${localStorage.getItem('tokopos_token')}`,
+            },
+        });
+        const payload = await response.json();
+        return payload.data.find((discount) => discount.code === discountCode) || null;
+    }, code);
+}
+
 async function login(page) {
     await page.goto('/');
     await page.getByLabel('Email').fill('admin@gmail.com');
     await page.getByLabel('Password').fill('123');
     await page.getByRole('button', { name: 'Masuk' }).click();
 
-    await expect(page).toHaveURL('http://tokopos.test')
+    await expect(page).toHaveURL(new URL('/', page.url()).href)
     await expect(page).toHaveTitle('TokoPOS')
 };
 
@@ -15,7 +35,7 @@ test.beforeEach(async ({ page }) => {
 
     await expect(page.getByRole('link', { name: 'Diskon', exact: true })).toBeVisible();
     await page.getByRole('link', { name: 'Diskon', exact: true }).click();
-    await expect(page).toHaveURL('http://tokopos.test/discounts');
+    await expect(page).toHaveURL(new URL('/discounts', page.url()).href);
 
     await expect(page.getByRole('heading', { level: 1, name: 'Data Diskon' })).toBeVisible();
     await expect(page.getByRole('searchbox', { name: 'Cari Diskon' })).toBeVisible();
@@ -165,9 +185,9 @@ test('Test Pagination', async ({ page }) =>{
 
     await expect(rowsPerPage).toHaveText('5');
 
-    await expect(page.locator('.MuiTablePagination-displayedRows')).toHaveText(/1–4 of \d+/);
+    await expect(page.locator('.MuiTablePagination-displayedRows')).toHaveText(/1–5 of \d+/);
 
-    await expect(page.locator('.MuiDataGrid-row')).toHaveCount(4);
+    await expect(page.locator('.MuiDataGrid-row')).toHaveCount(5);
 });
 
 test('Add Discounts - Success', async ({ page }) =>{
@@ -180,8 +200,8 @@ test('Add Discounts - Success', async ({ page }) =>{
         maxDiscount: '1500',
         minPurchase: '25000',
         maxUsage: '50',
-        startDate: '2026-09-12',
-        endDate: '2026-10-12',
+        startDate: dateOffset(-1),
+        endDate: dateOffset(30),
     };
     const modal = page.locator('.discounts-form-modal');
     const discountRow = page.getByRole('row').filter({ hasText: discountData.name });
@@ -231,7 +251,7 @@ test('Add Discounts - Failed (duplicate entry)', async ({ page }) =>{
         maxDiscount: '1500',
         minPurchase: '25000',
         maxUsage: '50',
-        startDate: '2026-09-12',
+        startDate: dateOffset(-1),
         endDate: '2026-10-12',
     };
     const modal = page.locator('.discounts-form-modal');
@@ -317,8 +337,8 @@ test('Edit Discounts - Success', async ({ page }) =>{
         maxDiscount: '',
         minPurchase: '150000',
         maxUsage: '50',
-        startDate: '2026-09-13',
-        endDate: '2026-10-14',
+        startDate: '',
+        endDate: '',
     };
 
     const newDiscountData = {
@@ -330,9 +350,14 @@ test('Edit Discounts - Success', async ({ page }) =>{
         maxDiscount: '5000',
         minPurchase: '45000',
         maxUsage: '10',
-        startDate: '2026-09-15',
-        endDate: '2026-10-16',
+        startDate: dateOffset(-1),
+        endDate: dateOffset(30),
     };
+
+    const existingDiscount = await getDiscountByCode(page, discountData.code);
+    expect(existingDiscount).not.toBeNull();
+    discountData.startDate = existingDiscount.start_date.slice(0, 10);
+    discountData.endDate = existingDiscount.end_date.slice(0, 10);
 
     await expect(discountRow).toHaveCount(1);
 
@@ -405,8 +430,8 @@ test('Edit Discounts - Failed (duplicate entry)', async ({ page }) =>{
         maxDiscount: '15000',
         minPurchase: '250000',
         maxUsage: '25',
-        startDate: '2026-09-13',
-        endDate: '2026-10-14',
+        startDate: '',
+        endDate: '',
     };
 
     const newDiscountData = {
@@ -418,9 +443,14 @@ test('Edit Discounts - Failed (duplicate entry)', async ({ page }) =>{
         maxDiscount: '30000',
         minPurchase: '75000',
         maxUsage: '100',
-        startDate: '2026-09-14',
-        endDate: '2026-10-15',
+        startDate: dateOffset(-1),
+        endDate: dateOffset(30),
     };
+
+    const existingDiscount = await getDiscountByCode(page, discountData.code);
+    expect(existingDiscount).not.toBeNull();
+    discountData.startDate = existingDiscount.start_date.slice(0, 10);
+    discountData.endDate = existingDiscount.end_date.slice(0, 10);
 
     await expect(discountRow).toHaveCount(1);
 

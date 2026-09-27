@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { apiRequest } from './support.js';
 
 async function login(page) {
     await page.goto('/');
@@ -6,7 +7,7 @@ async function login(page) {
     await page.getByLabel('Password').fill('123');
     await page.getByRole('button', { name: 'Masuk' }).click();
 
-    await expect(page).toHaveURL('http://tokopos.test')
+    await expect(page).toHaveURL(new URL('/', page.url()).href)
     await expect(page).toHaveTitle('TokoPOS')
 };
 
@@ -15,7 +16,7 @@ test.beforeEach(async ({ page }) => {
 
     await expect(page.getByRole('link', { name: 'Kategori' })).toBeVisible();
     await page.getByRole('link', {name:'Kategori'}).click();
-    await expect(page).toHaveURL('http://tokopos.test/categories');
+    await expect(page).toHaveURL(new URL('/categories', page.url()).href);
 
     await expect(page.getByRole('heading', { level: 1, name: 'Kategori Produk' })).toBeVisible();
     await expect(page.getByRole('combobox', { name: 'Status' })).toBeVisible();
@@ -57,10 +58,11 @@ test('Check Filter Status', async ({ page }) =>{
     await statusFilter.click();
     await page.getByRole('listbox').getByRole('option', { name: 'Nonaktif' }).click();
     await expect(statusFilter).toHaveText('Nonaktif');
+    await expect(rowKategori).not.toHaveCount(0);
 
     await expect.poll(async () => {
         const statuses = await rowKategori.locator('.category-status').allTextContents();
-        return statuses.every((status) => status.trim() === 'Aktif');
+        return statuses.length > 0 && statuses.every((status) => status.trim() === 'Nonaktif');
     }).toBe(true);
 });
 
@@ -177,6 +179,11 @@ test('Add Categories - Success', async ({ page }) =>{
 
     await modalCreate.getByRole('button', { name: 'Tambah Kategori', exact: true }).click();
     await expect(page.getByRole('alert')).toContainText('Kategori berhasil ditambahkan.');
+
+    const categoriesResponse = await apiRequest(page, '/categories?page=1&per_page=100');
+    const createdCategory = categoriesResponse.body.data.find((category) => category.name === categoryName);
+    expect(createdCategory).toBeDefined();
+    expect(createdCategory.slug).toBe(categoryName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''));
 });
 
 test('Add Categories - Failed (duplicate entry)', async ({ page }) =>{

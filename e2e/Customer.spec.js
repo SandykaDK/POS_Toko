@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { apiRequest } from './support.js';
 
 async function login(page) {
     await page.goto('/');
@@ -6,7 +7,7 @@ async function login(page) {
     await page.getByLabel('Password').fill('123');
     await page.getByRole('button', { name: 'Masuk' }).click();
 
-    await expect(page).toHaveURL('http://tokopos.test')
+    await expect(page).toHaveURL(new URL('/', page.url()).href)
     await expect(page).toHaveTitle('TokoPOS')
 };
 
@@ -15,7 +16,7 @@ test.beforeEach(async ({ page }) => {
 
     await expect(page.getByRole('link', { name: 'Pelanggan', exact: true })).toBeVisible();
     await page.getByRole('link', { name: 'Pelanggan', exact: true }).click();
-    await expect(page).toHaveURL('http://tokopos.test/customers');
+    await expect(page).toHaveURL(new URL('/customers', page.url()).href);
 
     await expect(page.getByRole('heading', { level: 1, name: 'Data Pelanggan' })).toBeVisible();
     await expect(page.getByRole('searchbox', { name: 'Cari Pelanggan' })).toBeVisible();
@@ -190,8 +191,8 @@ test('Add Customers - Failed (duplicate entry)', async ({ page }) =>{
     await expect(page.getByRole('heading', { level: 2, name: 'Tambah Pelanggan' })).toBeVisible()
 
     await modalCreate.getByRole('textbox', { name: 'Nama' }).fill('Sandyka');
-    await modalCreate.getByRole('textbox', { name: 'Email' }).fill('pelanggan@tokopos.net');
-    await modalCreate.getByRole('spinbutton', { name: 'Telepon' }).fill('089917718272');
+    await modalCreate.getByRole('textbox', { name: 'Email' }).fill('pelanggan@tokopos.test');
+    await modalCreate.getByRole('spinbutton', { name: 'Telepon' }).fill(`089${Date.now().toString().slice(-9)}`);
     await modalCreate.getByRole('textbox', { name: 'Alamat' }).fill('Surabaya');
     await modalCreate.getByRole('checkbox', { name: 'Aktif' }).check();
 
@@ -201,8 +202,7 @@ test('Add Customers - Failed (duplicate entry)', async ({ page }) =>{
 
 // Empty Field Test
 const requiredFields = [
-    { name: 'Nama ', role: 'textbox' },
-    { name: 'Email', role: 'textbox' },
+    { name: 'Nama', role: 'textbox' },
     { name: 'Telepon', role: 'spinbutton' },
 ];
 
@@ -225,6 +225,30 @@ for (const field of requiredFields) {
     expect(await targetField.evaluate((input) => input.validity.valid)).toBe(false);
   });
 }
+
+test('Customer email is optional in the form as documented', async ({ page }) => {
+    test.fail(true, 'The customer requirements allow a blank email, but the form currently marks email required.');
+    await page.getByRole('button', { name: 'Tambah' }).click();
+
+    await expect(page.locator('.customers-form-modal').getByLabel('Email')).not.toBeRequired();
+});
+
+test('Customer API accepts a blank optional email', async ({ page }) => {
+    test.fail(true, 'The customer requirements allow a blank email, but CustomerController currently requires email.');
+    const response = await apiRequest(page, '/customers', {
+        method: 'POST',
+        body: {
+            name: 'Customer without email',
+            email: '',
+            phone: `089${Date.now().toString().slice(-9)}`,
+            address: 'E2E test',
+            status: 'active',
+        },
+    });
+
+    expect(response.status).toBe(201);
+    expect(response.body.data.email).toBeNull();
+});
 
 test('Edit Customers - Success', async ({ page }) =>{
     const customerRow = page.getByRole('row').filter({ hasText: 'Pelanggan Umum' });
@@ -298,14 +322,42 @@ test('Edit Customers - Failed (duplicate entry)', async ({ page }) =>{
 });
 
 test('Delete Customers - Success', async ({ page }) =>{
-    const categoryRow = page.getByRole('row').filter({ hasText: 'Gita Permata' })
+    const customerRow = page.getByRole('row').filter({ hasText: 'Gita Permata' })
 
-    await expect(categoryRow).toHaveCount(1);
-    await categoryRow.getByRole('button', { name: 'Hapus Kategori' }).click();
+    await expect(customerRow).toHaveCount(1);
+    await customerRow.getByRole('button', { name: 'Hapus pelanggan' }).click();
 
-    await expect(page.getByRole('heading', { level: 2, name: 'Hapus kategori?' })).toBeVisible();
-    await page.getByRole('alertdialog').getByRole('button', { name: 'Hapus kategori', exact: true }).click();
+    const dialog = page.getByRole('alertdialog');
+    await expect(dialog).toContainText('Pelanggan akan dipindahkan ke daftar terhapus');
+    await dialog.getByRole('button', { name: 'Hapus pelanggan', exact: true }).click();
     await expect(page.getByRole('alert')).toContainText('Pelanggan berhasil dihapus.');
+});
+
+test('Customers with transactions cannot be force-deleted', async ({ page }) => {
+    const customersResponse = await apiRequest(page, '/customers?page=1&per_page=100');
+    const customer = customersResponse.body.data.find((item) => item.name === 'Andi Saputra');
+    expect(customer).toBeDefined();
+
+    const transactionsResponse = await apiRequest(page, `/transactions?per_page=100&customer_id=${customer.id}`);
+    expect(transactionsResponse.body.data.length).toBeGreaterThan(0);
+
+    const softDeleteResponse = await apiRequest(page, `/customers/${customer.id}`, { method: 'DELETE' });
+    expect(softDeleteResponse.status).toBe(200);
+    await page.getByRole('button', { name: 'Terhapus' }).click();
+
+    const customerRow = page.getByRole('row').filter({ hasText: customer.name });
+    await expect(customerRow).toBeVisible();
+    await customerRow.getByRole('button', { name: 'Hapus permanen' }).click();
+    const deleteDialog = page.getByRole('alertdialog');
+    await deleteDialog.getByRole('button', { name: 'Hapus permanen' }).click();
+    await expect(page.getByRole('alert')).toContainText('Pelanggan tidak dapat dihapus permanen karena masih memiliki transaksi');
+
+    const trashedResponse = await apiRequest(page, '/customers/trashed?page=1&per_page=100');
+    expect(trashedResponse.body.data.some((item) => item.id === customer.id)).toBe(true);
+
+    await customerRow.getByRole('button', { name: 'Pulihkan pelanggan' }).click();
+    await page.getByRole('alertdialog').getByRole('button', { name: 'Pulihkan pelanggan' }).click();
+    await expect(page.getByRole('alert')).toContainText('Pelanggan berhasil dipulihkan.');
 });
 
 test('Open tab Terhapus', async ({ page }) => {
@@ -342,10 +394,10 @@ test('Open tab Terhapus', async ({ page }) => {
     await expect(page.getByRole('button', {name: 'Go to next page'})).toBeVisible();
 });
 
-test('Restore category data', async ({ page }) =>{
+test('Restore customer data', async ({ page }) =>{
     const tabTerhapus = page.getByRole('button', { name: 'Terhapus' });
     const rows = page.locator('.MuiDataGrid-row');
-    const categoryRow = page.getByRole('row').filter({ hasText: 'Pelanggan Terhapus 1' })
+    const customerRow = page.getByRole('row').filter({ hasText: 'Pelanggan Terhapus 1' })
 
     await expect(tabTerhapus).toBeVisible();
     await (tabTerhapus).click();
@@ -360,7 +412,7 @@ test('Restore category data', async ({ page }) =>{
         await expect(row.getByRole('button', { name: 'Hapus permanen' })).toBeVisible();
     }
 
-    await categoryRow.getByRole('button', { name: 'Pulihkan pelanggan' }).click();
+    await customerRow.getByRole('button', { name: 'Pulihkan pelanggan' }).click();
 
     const dialog = page.getByRole('alertdialog');
     await expect(dialog).toBeVisible();

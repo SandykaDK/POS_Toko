@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import path from 'path';
+import { apiRequest } from './support.js';
 
 async function login(page) {
     await page.goto('/');
@@ -7,7 +8,7 @@ async function login(page) {
     await page.getByLabel('Password').fill('123');
     await page.getByRole('button', { name: 'Masuk' }).click();
 
-    await expect(page).toHaveURL('http://tokopos.test')
+    await expect(page).toHaveURL(new URL('/', page.url()).href)
     await expect(page).toHaveTitle('TokoPOS')
 };
 
@@ -16,7 +17,7 @@ test.beforeEach(async ({ page }) => {
 
     await expect(page.getByRole('link', { name: 'Produk', exact: true })).toBeVisible();
     await page.getByRole('link', { name: 'Produk', exact: true }).click();
-    await expect(page).toHaveURL('http://tokopos.test/products');
+    await expect(page).toHaveURL(new URL('/products', page.url()).href);
 
     await expect(page.getByRole('heading', { level: 1, name: 'Data Produk' })).toBeVisible();
     await expect(page.getByRole('searchbox', { name: 'Cari Produk' })).toBeVisible();
@@ -143,10 +144,10 @@ test('Sort ASC/DESC - All sortable column', async ({ page }) =>{
     }
 });
 
-test ('Search Produk', async ({ page }) =>{
+test('Search Product', async ({ page }) =>{
     const rows = page.locator('.MuiDataGrid-row');
     const searchbox = page.getByRole('searchbox', { name: 'Cari Produk' });
-    const productCodes = page.locator('.MuiDataGrid-row [data-field="category_code"]');
+    const productCodes = page.locator('.MuiDataGrid-row [data-field="product_code"]');
 
     const initialCodes = (await productCodes.allTextContents()).map((value) => value.trim());
 
@@ -184,10 +185,11 @@ test('Add Products - Success', async ({ page }) =>{
     await expect(page.getByRole('heading', { level: 2, name: 'Tambah Produk' })).toBeVisible();
 
     await modalCreate.getByRole('textbox', { name: 'Nama Produk' }).fill(productsName);
-    await modalCreate.getByRole('combobox', { name: 'Kategori', exact: true }).selectOption({ label: 'Minuman' });
+    await modalCreate.locator('#category_id').selectOption({ label: 'Minuman' });
+    await expect(modalCreate.locator('#product_code')).toHaveValue(/^MIN-\d{3}$/);
     await modalCreate.getByRole('spinbutton', { name: 'Harga Beli' }).fill('5000');
     await modalCreate.getByRole('spinbutton', { name: 'Harga Jual' }).fill('6000');
-    await modalCreate.getByRole('spinbutton', { name: 'Stok', exact: true }).fill('15');
+    await modalCreate.locator('#stock').fill('15');
     await modalCreate.getByRole('spinbutton', { name: 'Stok Minimal' }).fill('5');
     await modalCreate.getByRole('combobox', { name: 'Unit' }).selectOption('pcs');
     await modalCreate.locator('#product_image').setInputFiles(imagePath);
@@ -208,10 +210,10 @@ test('Add Products Failed (duplicate entry)', async ({ page }) =>{
     await expect(page.getByRole('heading', { level: 2, name: 'Tambah Produk' })).toBeVisible()
 
     await modalCreate.getByRole('textbox', { name: 'Nama Produk' }).fill(productsName)
-    await modalCreate.getByRole('combobox', { name: 'Kategori', exact: true }).selectOption({ label: 'Minuman' });
+    await modalCreate.locator('#category_id').selectOption({ label: 'Minuman' });
     await modalCreate.getByRole('spinbutton', { name: 'Harga Beli' }).fill('5000');
     await modalCreate.getByRole('spinbutton', { name: 'Harga Jual' }).fill('6000');
-    await modalCreate.getByRole('spinbutton', { name: 'Stok', exact: true }).fill('15');
+    await modalCreate.locator('#stock').fill('15');
     await modalCreate.getByRole('spinbutton', { name: 'Stok Minimal' }).fill('5');
     await modalCreate.getByRole('combobox', { name: 'Unit' }).selectOption('pcs');
     await modalCreate.locator('#product_image').setInputFiles(imagePath);
@@ -224,11 +226,11 @@ test('Add Products Failed (duplicate entry)', async ({ page }) =>{
 
 // Empty Field Test
 const requiredFields = [
-        { name: 'Nama Produk', role: 'textbox' },
-        { name: 'Harga Beli', role: 'spinbutton' },
-        { name: 'Harga Jual', role: 'spinbutton' },
-        { name: 'Stok', role: 'spinbutton', exact: true },
-        { name: 'Stok Minimal', role: 'spinbutton' },
+        { name: 'Nama Produk', selector: '#product_name' },
+        { name: 'Harga Beli', selector: '#cost_price' },
+        { name: 'Harga Jual', selector: '#selling_price' },
+        { name: 'Stok', selector: '#stock' },
+        { name: 'Stok Minimal', selector: '#min_stock' },
 ];
 
 for (const field of requiredFields) {
@@ -238,14 +240,14 @@ for (const field of requiredFields) {
 
     // Isi field wajib lain dengan data valid.
     await modalCreate.getByRole('textbox', { name: 'Nama Produk' }).fill('Test Product');
-    await modalCreate.getByRole('combobox', { name: 'Kategori', exact: true }).selectOption({ label: 'Minuman' });
-    await modalCreate.getByRole('spinbutton', { name: 'Harga Beli' }).fill('5000');
-    await modalCreate.getByRole('spinbutton', { name: 'Harga Jual' }).fill('6000');
-    await modalCreate.getByRole('spinbutton', { name: 'Stok', exact: true }).fill('10');
-    await modalCreate.getByRole('spinbutton', { name: 'Stok Minimal' }).fill('5');
+    await modalCreate.locator('#category_id').selectOption({ label: 'Minuman' });
+    await modalCreate.locator('#cost_price').fill('5000');
+    await modalCreate.locator('#selling_price').fill('6000');
+    await modalCreate.locator('#stock').fill('10');
+    await modalCreate.locator('#min_stock').fill('5');
 
     // Kosongkan field yang sedang diuji.
-    const targetField = modalCreate.getByRole(field.role, { name: field.name, exact: field.exact });
+    const targetField = modalCreate.locator(field.selector);
 
     await targetField.fill('');
 
@@ -254,7 +256,7 @@ for (const field of requiredFields) {
   });
 };
 
-test('Edit Categories - Success', async ({ page }) =>{
+test('Edit Products - Success', async ({ page }) =>{
     const productsRow = page.getByRole('row').filter({ hasText: 'Hansaplast' });
     const productsEdited = page.getByRole('row').filter({ hasText: 'Hansaplast Baru' });
     const modalEdit = page.locator('.products-form-modal');
@@ -270,7 +272,7 @@ test('Edit Categories - Success', async ({ page }) =>{
     await modalEdit.getByRole('textbox', { name: 'Nama Produk' }).fill('Hansaplast Baru');
 
     await expect(modalEdit.getByRole('combobox', { name: 'Kategori' }).locator('option:checked')).toHaveText('Obat');
-    await modalEdit.getByRole('combobox', { name: 'Kategori' }).selectOption({label: 'Perawatan Pribadi'});
+    await modalEdit.locator('#category_id').selectOption({label: 'Perawatan Pribadi'});
 
     await expect(modalEdit.getByRole('spinbutton', { name: 'Harga Beli' })).toHaveValue('0.00');
     await modalEdit.getByRole('spinbutton', { name: 'Harga Beli' }).fill('200');
@@ -278,8 +280,8 @@ test('Edit Categories - Success', async ({ page }) =>{
     await expect(modalEdit.getByRole('spinbutton', { name: 'Harga Jual' })).toHaveValue('500.00');
     await modalEdit.getByRole('spinbutton', { name: 'Harga Jual' }).fill('600');
 
-    await expect(modalEdit.getByRole('spinbutton', { name: 'Stok', exact: true })).toHaveValue('10');
-    await modalEdit.getByRole('spinbutton', { name: 'Stok', exact: true }).fill('20');
+    await expect(modalEdit.locator('#stock')).toHaveValue('10');
+    await modalEdit.locator('#stock').fill('20');
 
     await expect(modalEdit.getByRole('spinbutton', { name: 'Stok Minimal' })).toHaveValue('5');
     await modalEdit.getByRole('spinbutton', { name: 'Stok Minimal' }).fill('7');
@@ -319,7 +321,7 @@ test('Edit Categories - Success', async ({ page }) =>{
     await expect(modalEdit.locator('.product-image-preview')).toHaveAttribute('src', /.+/);
 });
 
-test('Edit Categories - Failed (duplicate entry)', async ({ page }) =>{
+test('Edit Products - Failed (duplicate entry)', async ({ page }) =>{
     const productsRow = page.getByRole('row').filter({ hasText: 'Ladaku Merica Bubuk' });
     const productsEdited = page.getByRole('row').filter({ hasText: 'Adem Sari' });
     const modalEdit = page.locator('.products-form-modal');
@@ -335,7 +337,7 @@ test('Edit Categories - Failed (duplicate entry)', async ({ page }) =>{
     await modalEdit.getByRole('textbox', { name: 'Nama Produk' }).fill('Adem Sari');
 
     await expect(modalEdit.getByRole('combobox', { name: 'Kategori' }).locator('option:checked')).toHaveText('Bumbu');
-    await modalEdit.getByRole('combobox', { name: 'Kategori' }).selectOption({label: 'Perawatan Pribadi'});
+    await modalEdit.locator('#category_id').selectOption({label: 'Perawatan Pribadi'});
 
     await expect(modalEdit.getByRole('spinbutton', { name: 'Harga Beli' })).toHaveValue('0.00');
     await modalEdit.getByRole('spinbutton', { name: 'Harga Beli' }).fill('100');
@@ -343,8 +345,8 @@ test('Edit Categories - Failed (duplicate entry)', async ({ page }) =>{
     await expect(modalEdit.getByRole('spinbutton', { name: 'Harga Jual' })).toHaveValue('1000.00');
     await modalEdit.getByRole('spinbutton', { name: 'Harga Jual' }).fill('1100.00');
 
-    await expect(modalEdit.getByRole('spinbutton', { name: 'Stok', exact: true })).toHaveValue('10');
-    await modalEdit.getByRole('spinbutton', { name: 'Stok', exact: true }).fill('20');
+    await expect(modalEdit.locator('#stock')).toHaveValue('10');
+    await modalEdit.locator('#stock').fill('20');
 
     await expect(modalEdit.getByRole('spinbutton', { name: 'Stok Minimal' })).toHaveValue('5');
     await modalEdit.getByRole('spinbutton', { name: 'Stok Minimal' }).fill('7');
@@ -362,6 +364,21 @@ test('Edit Categories - Failed (duplicate entry)', async ({ page }) =>{
 
     await modalEdit.getByRole('button', { name: 'Simpan Perubahan' }).click();
     await expect(page.getByRole('alert')).toContainText('Nama sudah digunakan.')
+});
+
+test('Products with transactions cannot be deleted', async ({ page }) => {
+    const productsResponse = await apiRequest(page, '/products?page=1&per_page=100');
+    const product = productsResponse.body.data.find((item) => item.name === 'Adem Sari');
+    expect(product).toBeDefined();
+
+    await page.getByRole('searchbox', { name: 'Cari Produk' }).fill(product.name);
+    const productRow = page.getByRole('row').filter({ hasText: product.name });
+    await expect(productRow).toHaveCount(1);
+    await productRow.getByRole('button', { name: 'Hapus produk' }).click();
+    await page.getByRole('alertdialog').getByRole('button', { name: 'Hapus produk', exact: true }).click();
+
+    await expect(page.getByRole('alert')).toContainText('Produk tidak dapat dihapus karena masih memiliki transaksi');
+    await expect(productRow).toBeVisible();
 });
 
 test('Delete Products - Success', async ({ page }) =>{
